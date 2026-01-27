@@ -5,6 +5,7 @@ from google.oauth2.service_account import Credentials
 import json
 import re
 from datetime import datetime
+import pytz
 
 # --- 1. 설정 및 구글 시트 연결 ---
 MAX_CAPACITY = 20  # 프로그램당 정원
@@ -92,7 +93,30 @@ def format_phone_number(phone):
 # --- 3. UI 구성 ---
 
 st.set_page_config(page_title="체험 프로그램 신청", page_icon="🏫")
+# --- 🕒 [오픈런 설정] 신청 시작 시간 설정 ---
+# 선생님! 아래 숫자를 원하는 날짜/시간으로 바꾸세요 (예: 2024년 3월 4일 9시 0분 0초)
+OPEN_YEAR = 2026
+OPEN_MONTH = 1
+OPEN_DAY = 27
+OPEN_HOUR = 11
+OPEN_MINUTE = 0
 
+# 한국 시간 설정 (건드리지 마세요)
+kst = pytz.timezone('Asia/Seoul')
+now_kst = datetime.now(kst)
+open_time = datetime(OPEN_YEAR, OPEN_MONTH, OPEN_DAY, OPEN_HOUR, OPEN_MINUTE, 0, tzinfo=kst)
+
+# 시간이 안 됐으면 문 닫아걸기
+if now_kst < open_time:
+    st.title("🚧 신청 기간이 아닙니다")
+    st.error(f"📢 신청 시작 시간: {open_time.strftime('%Y년 %m월 %d일 %H시 %M분')}")
+    st.info(f"🕰️ 현재 시간: {now_kst.strftime('%H시 %M분 %S초')}")
+    
+    st.write("시간이 되면 아래 [새로고침] 버튼을 눌러주세요.")
+    if st.button("🔄 새로고침 (시간 확인)"):
+        st.rerun()
+        
+    st.stop() # 🛑 여기서 프로그램 실행을 멈춥니다! (아래 신청폼이 안 보임)
 st.title("🏫 중학교 직업체험 신청")
 
 st.markdown("""
@@ -212,3 +236,4 @@ with st.expander("관리자 메뉴"):
     st.write("데이터는 구글 스프레드시트에 실시간으로 저장되고 있습니다.")
     if 'SHEET_URL' in locals():
         st.link_button("📊 구글 시트로 이동하여 명단 확인하기", SHEET_URL)
+
