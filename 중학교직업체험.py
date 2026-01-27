@@ -124,17 +124,15 @@ if now_kst < open_time:
     st.stop() 
 
 # --------------------------------------------------------------------------
-# 5. 메인 화면 구성 (순서 변경 완료: 정보입력 -> 프로그램선택)
+# 5. 메인 화면 구성
 # --------------------------------------------------------------------------
 st.title("🏫 중학교 직업체험 신청")
 
 st.markdown("""
 ### 📢 [신청 전 유의사항]
-1. **날짜를 먼저 선택**해야 해당 일자의 학교 및 프로그램 목록이 나타납니다.
-2. **같은 날짜**에는 **1개의 프로그램**만 신청할 수 있습니다.
-3. 이전에 신청했던 프로그램과 **동일한 프로그램은 중복 신청이 불가능**합니다.
-4. 각 프로그램은 **설정된 정원(선착순)** 마감입니다.
-5. 본인 확인을 위해 **이름과 연락처를 정확하게** 입력해주세요.
+1. **학생 정보를 먼저 입력**해주세요.
+2. 날짜와 학교를 선택하면 해당 프로그램 목록이 나타납니다.
+3. 각 프로그램은 **선착순 마감**입니다.
 """)
 
 st.info("""
@@ -145,23 +143,30 @@ st.info("""
 st.markdown("---")
 
 # =========================================================
-# 1단계: 학생 정보 입력 (맨 위로 이동!)
+# 1단계: 학생 정보 입력 (레이아웃 수정됨!)
 # =========================================================
 st.subheader("1. 학생 정보 입력")
 
-col1, col2 = st.columns(2)
-with col1:
+# 첫 번째 줄: 이름, 연락처 (2칸으로 나눔)
+row1_col1, row1_col2 = st.columns(2)
+with row1_col1:
     name_input = st.text_input("이름 (예: 홍길동)")
-    school_input = st.text_input("중학교 (예: OO중)")
-    grade_input = st.selectbox("학년", ["1학년", "2학년", "3학년"])
-with col2:
+with row1_col2:
     phone_input = st.text_input("연락처 (숫자만 입력)", max_chars=11)
+
+# 두 번째 줄: 학교, 학년, 반 (3칸으로 나눔)
+row2_col1, row2_col2, row2_col3 = st.columns(3)
+with row2_col1:
+    school_input = st.text_input("중학교 (예: OO중)")
+with row2_col2:
+    grade_input = st.selectbox("학년", ["1학년", "2학년", "3학년"])
+with row2_col3:
     class_input = st.text_input("반 (숫자만 입력)")
 
 st.markdown("---")
 
 # =========================================================
-# 2단계: 체험 프로그램 선택 (아래로 이동!)
+# 2단계: 체험 프로그램 선택
 # =========================================================
 st.subheader("2. 체험 프로그램 선택")
 
@@ -203,29 +208,23 @@ st.markdown("---")
 # =========================================================
 # 3단계: 최종 신청 버튼
 # =========================================================
-# 버튼을 누르면 모든 정보를 한꺼번에 검사하고 저장합니다.
 if st.button("✅ 위 내용으로 신청하기", use_container_width=True):
     
-    # 1. 입력값 검증 (비어있는지 확인)
+    # 1. 입력값 검증
     if not name_input or not phone_input or not school_input or not class_input:
         st.error("❌ 학생 정보를 모두 입력해주세요.")
-    
-    # 2. 연락처 검증
     elif not phone_input.isdigit():
         st.warning("연락처에는 숫자만 입력해주세요.")
     elif len(phone_input) != 11:
         st.warning("연락처 11자리를 모두 입력해주세요.")
     elif not phone_input.startswith("010"):
         st.warning("연락처는 010으로 시작해야 합니다.")
-        
-    # 3. 마감 여부 검증
     elif "[마감]" in selected_display:
         st.error("❌ 선택하신 프로그램은 이미 마감되었습니다.")
-        
     else:
         formatted_phone = format_phone_number(phone_input)
         
-        # 4. 최종 인원 마감 재확인 (동시 접속 대비)
+        # 4. 최종 인원 마감 재확인
         final_count = get_program_count(selected_date, selected_school, real_program_name)
         
         if final_count >= current_limit:
@@ -246,7 +245,6 @@ if st.button("✅ 위 내용으로 신청하기", use_container_width=True):
             elif not prog_dup.empty:
                 st.error(f"🚫 '{real_program_name}' 프로그램은 이미 신청하셨습니다.")
             else:
-                # 6. 저장 실행
                 new_entry_list = [
                     datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     name_input,
@@ -261,11 +259,10 @@ if st.button("✅ 위 내용으로 신청하기", use_container_width=True):
                 
                 save_data(new_entry_list)
                 st.success(f"🎉 신청이 완료되었습니다! ({real_program_name})")
-                st.balloons() # 축하 풍선 효과
+                st.balloons() 
 
 # 관리자 메뉴
 with st.expander("관리자 메뉴"):
     st.write("데이터는 구글 스프레드시트에 실시간으로 저장되고 있습니다.")
     if 'SHEET_URL' in locals():
         st.link_button("📊 구글 시트로 이동하여 명단 확인하기", SHEET_URL)
-
