@@ -286,12 +286,13 @@ if st.button("✅ 위 내용으로 신청하기", use_container_width=True):
                 
                 save_data(new_entry_list)
                 st.success(f"🎉 신청이 완료되었습니다! ({real_program_name})")
-                st.balloons() 
+
 
 # 관리자 메뉴
 with st.expander("관리자 메뉴"):
     st.write("데이터는 구글 스프레드시트에 실시간으로 저장되고 있습니다.")
     if 'SHEET_URL' in locals():
         st.link_button("📊 구글 시트로 이동하여 명단 확인하기", SHEET_URL)
+
 
 
