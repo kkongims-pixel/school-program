@@ -8,7 +8,6 @@ from datetime import datetime
 import pytz
 
 # --- 1. 설정 및 구글 시트 연결 ---
-MAX_CAPACITY = 20  # 프로그램당 정원
 
 # Streamlit Secrets에서 정보 가져오기
 try:
@@ -27,27 +26,46 @@ except Exception as e:
     st.error(f"구글 시트 연결 오류: {e}")
     st.stop()
 
+# [수정 전] "A고등학교": ["프로그램1", "프로그램2"]
+# [수정 후] 아래와 같이 변경
+
 SCHEDULE = {
     "2월 1일": {
-        "A고등학교": ["프로그램1 (AI 코딩)", "프로그램2 (로봇)", "프로그램3 (3D 프린팅)"],
-        "B고등학교": ["프로그램1 (제과)", "프로그램2 (제빵)", "프로그램3 (바리스타)"],
-        "C고등학교": ["프로그램1 (드론)", "프로그램2 (VR 체험)", "프로그램3 (게임개발)"],
+        "A고등학교": [
+            {"name": "프로그램1 (AI 코딩)", "limit": 25},  # 25명
+            {"name": "프로그램2 (로봇)", "limit": 15},     # 15명
+            {"name": "프로그램3 (3D 프린팅)", "limit": 20} # 20명
+        ],
+        "B고등학교": [
+            {"name": "프로그램1 (제과)", "limit": 12},     # 실습실이 작음
+            {"name": "프로그램2 (제빵)", "limit": 12},
+            {"name": "프로그램3 (바리스타)", "limit": 10}
+        ],
+        "C고등학교": [
+            {"name": "프로그램1 (드론)", "limit": 30},     # 강당 사용
+            {"name": "프로그램2 (VR 체험)", "limit": 20},
+            {"name": "프로그램3 (게임개발)", "limit": 20}
+        ],
     },
+    # ... (다른 날짜들도 위와 같은 형식으로 수정해주셔야 합니다) ...
     "2월 2일": {
-        "A고등학교": ["프로그램1 (AI 코딩)", "프로그램2 (로봇)", "프로그램3 (3D 프린팅)"],
-        "B고등학교": ["프로그램1 (제과)", "프로그램2 (제빵)", "프로그램3 (바리스타)"],
-        "C고등학교": ["프로그램1 (드론)", "프로그램2 (VR 체험)", "프로그램3 (게임개발)"],
+         "A고등학교": [
+            {"name": "프로그램1 (AI 코딩)", "limit": 25},
+            {"name": "프로그램2 (로봇)", "limit": 15},
+            {"name": "프로그램3 (3D 프린팅)", "limit": 20}
+        ],
+        "B고등학교": [
+            {"name": "프로그램1 (제과)", "limit": 12},
+            {"name": "프로그램2 (제빵)", "limit": 12},
+            {"name": "프로그램3 (바리스타)", "limit": 10}
+        ],
+        "C고등학교": [
+            {"name": "프로그램1 (드론)", "limit": 30},
+            {"name": "프로그램2 (VR 체험)", "limit": 20},
+            {"name": "프로그램3 (게임개발)", "limit": 20}
+        ],
     },
-    "2월 3일": {
-        "A고등학교": ["프로그램1 (AI 코딩)", "프로그램2 (로봇)", "프로그램3 (3D 프린팅)"],
-        "B고등학교": ["프로그램1 (제과)", "프로그램2 (제빵)", "프로그램3 (바리스타)"],
-        "C고등학교": ["프로그램1 (드론)", "프로그램2 (VR 체험)", "프로그램3 (게임개발)"],
-    },
-    "2월 4일": {
-        "A고등학교": ["프로그램1 (심화 코딩)", "프로그램2 (로봇 축구)"],
-        "B고등학교": ["프로그램1 (설탕 공예)", "프로그램2 (케이크)"],
-        "C고등학교": ["프로그램1 (드론 레이싱)", "프로그램2 (메타버스)"],
-    }
+    # (나머지 날짜도 동일한 규칙으로 작성해주세요)
 }
 
 COLUMNS = ["신청일시", "이름", "연락처", "소속학교", "학년", "반", "체험날짜", "학교", "프로그램"]
@@ -133,29 +151,7 @@ st.info("""
 신청하기 버튼을 누르시면 위 내용에 동의하는 것으로 간주됩니다.
 """)
 
-st.markdown("---")
-
-with st.form("application_form"):
-    st.subheader("1. 학생 정보 입력")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        name_input = st.text_input("이름", placeholder="예: 홍길동")
-    with col2:
-        phone_input = st.text_input(
-            "연락처 (숫자만 입력)", 
-            placeholder="01012345678", 
-            max_chars=11,
-            help="하이픈(-) 없이 숫자 11자리만 입력해주세요."
-        )
-
-    col3, col4, col5 = st.columns(3)
-    with col3:
-        school_input = st.text_input("소속 중학교", placeholder="예: 한국중")
-    with col4:
-        grade_input = st.selectbox("학년", ["1학년", "2학년", "3학년"])
-    with col5:
-        class_input = st.text_input("반", placeholder="숫자만 입력 (예: 3)")
+# ... (위쪽 학생 정보 입력 코드는 그대로 두세요) ...
 
     st.markdown("---")
     st.subheader("2. 체험 프로그램 선택")
@@ -164,21 +160,36 @@ with st.form("application_form"):
     available_schools = list(SCHEDULE[selected_date].keys())
     selected_school = st.selectbox("체험할 고등학교 선택", available_schools)
     
-    raw_programs = SCHEDULE[selected_date][selected_school]
+    # [수정된 부분] 선택된 학교의 프로그램 목록(이름+정원)을 가져옵니다.
+    raw_programs_data = SCHEDULE[selected_date][selected_school]
+    
     display_options = []
-    display_map = {}
+    display_map = {} # 화면에 보이는 이름 -> 실제 데이터 연결
+    limit_map = {}   # 프로그램 이름 -> 정원 수 연결
 
-    for prog in raw_programs:
-        current_count = get_program_count(selected_date, selected_school, prog)
-        if current_count >= MAX_CAPACITY:
-            display_text = f"🚫 [마감] {prog}"
+    # 반복문을 돌면서 마감 여부를 확인합니다.
+    for item in raw_programs_data:
+        prog_name = item["name"]   # 프로그램 이름
+        prog_limit = item["limit"] # 프로그램별 정원 (15명, 25명 등)
+        
+        # 현재 신청된 인원 확인
+        current_count = get_program_count(selected_date, selected_school, prog_name)
+        
+        # 마감 여부 체크 (20명 고정이 아니라 prog_limit 사용)
+        if current_count >= prog_limit:
+            display_text = f"🚫 [마감] {prog_name}"
         else:
-            display_text = f"{prog} (신청현황: {current_count}/{MAX_CAPACITY}명)"
+            display_text = f"{prog_name} (신청: {current_count}/{prog_limit}명)"
+        
         display_options.append(display_text)
-        display_map[display_text] = prog
+        display_map[display_text] = prog_name
+        limit_map[prog_name] = prog_limit # 나중에 신청할 때 쓰려고 저장
 
     selected_display = st.selectbox("프로그램 선택", display_options)
     real_program_name = display_map[selected_display]
+    
+    # 선택한 프로그램의 정원을 가져옵니다.
+    current_limit = limit_map[real_program_name]
 
     st.markdown("---")
     submitted = st.form_submit_button("위 내용으로 신청하기", use_container_width=True)
@@ -197,9 +208,11 @@ with st.form("application_form"):
         else:
             formatted_phone = format_phone_number(phone_input)
 
+            # [수정된 부분] 최종 저장 전, 다시 한번 해당 프로그램의 정원(current_limit)으로 마감 체크
             final_count = get_program_count(selected_date, selected_school, real_program_name)
-            if final_count >= MAX_CAPACITY:
-                st.error("신청하는 도중에 마감되었습니다. 😭")
+            
+            if final_count >= current_limit:
+                st.error(f"아쉽지만 방금 마감되었습니다. (정원 {current_limit}명 초과)")
             else:
                 user_history = get_user_history(name_input, formatted_phone)
                 
@@ -211,11 +224,10 @@ with st.form("application_form"):
                     prog_dup = user_history[user_history['프로그램'] == real_program_name]
                 
                 if not date_dup.empty:
-                    st.error(f"🚫 '{selected_date}'에는 이미 신청 내역이 있습니다.")
+                    st.error(f"🚫 '{selected_date}'에는 이미 신청 내역이 있어 중복 신청할 수 없습니다.")
                 elif not prog_dup.empty:
                     st.error(f"🚫 '{real_program_name}' 프로그램은 이미 신청하셨습니다.")
                 else:
-                    # 5. 구글 시트에 저장할 리스트 생성 (순서 중요!)
                     new_entry_list = [
                         datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                         name_input,
@@ -230,10 +242,11 @@ with st.form("application_form"):
                     
                     save_data(new_entry_list)
                     st.success(f"✅ 신청완료! 명단에 안전하게 저장되었습니다.")
-
+                    
 # 관리자 메뉴는 이제 필요 없어서 삭제하거나, 시트 링크만 제공
 with st.expander("관리자 메뉴"):
     st.write("데이터는 구글 스프레드시트에 실시간으로 저장되고 있습니다.")
     if 'SHEET_URL' in locals():
         st.link_button("📊 구글 시트로 이동하여 명단 확인하기", SHEET_URL)
+
 
