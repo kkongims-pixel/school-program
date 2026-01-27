@@ -67,9 +67,24 @@ SCHEDULE = {
 COLUMNS = ["신청일시", "이름", "연락처", "소속학교", "학년", "반", "체험날짜", "학교", "프로그램"]
 
 # --------------------------------------------------------------------------
-# 3. 데이터 처리 함수
+# 3. 데이터 처리 함수 (속도 최적화 적용!)
 # --------------------------------------------------------------------------
-def load_data():
+
+# (1) [속도 UP] 화면 표시용 데이터 로더 (5초 동안 기억함)
+@st.cache_data(ttl=5) 
+def load_data_cached():
+    """UI 표시용: 구글 시트 데이터를 5초간 캐싱하여 속도 향상"""
+    try:
+        data = sheet.get_all_values()
+        if len(data) <= 1: 
+            return pd.DataFrame(columns=COLUMNS)
+        return pd.DataFrame(data[1:], columns=data[0])
+    except:
+        return pd.DataFrame(columns=COLUMNS)
+
+# (2) [안전 제일] 저장 전 확인용 데이터 로더 (캐시 안 씀, 무조건 실시간)
+def load_data_fresh():
+    """최종 신청용: 무조건 최신 데이터를 가져옴"""
     try:
         data = sheet.get_all_values()
         if len(data) <= 1: 
@@ -80,9 +95,11 @@ def load_data():
 
 def save_data(new_entry_list):
     sheet.append_row(new_entry_list)
+    # 저장 후 캐시 비우기 (다음 사람이 바로 반영된거 볼 수 있게)
+    load_data_cached.clear()
 
-def get_program_count(date, school, program_name):
-    df = load_data()
+# [수정됨] 데이터프레임(df)을 밖에서 받아오도록 변경하여 반복 호출 제거
+def count_in_dataframe(df, date, school, program_name):
     if df.empty: return 0
     filtered = df[
         (df['체험날짜'] == date) & 
@@ -91,8 +108,7 @@ def get_program_count(date, school, program_name):
     ]
     return len(filtered)
 
-def get_user_history(name, phone):
-    df = load_data()
+def get_user_history(df, name, phone):
     if df.empty: return pd.DataFrame(columns=COLUMNS)
     return df[(df['이름'].str.strip() == name.strip()) & (df['연락처'].str.strip() == phone.strip())]
 
@@ -145,18 +161,16 @@ st.info("""
 st.markdown("---")
 
 # =========================================================
-# 1단계: 학생 정보 입력 (레이아웃 수정됨!)
+# 1단계: 학생 정보 입력
 # =========================================================
 st.subheader("1. 학생 정보 입력")
 
-# 첫 번째 줄: 이름, 연락처 (2칸으로 나눔)
 row1_col1, row1_col2 = st.columns(2)
 with row1_col1:
     name_input = st.text_input("이름 (예: 홍길동)")
 with row1_col2:
     phone_input = st.text_input("연락처 (숫자만 입력)", max_chars=11)
 
-# 두 번째 줄: 학교, 학년, 반 (3칸으로 나눔)
 row2_col1, row2_col2, row2_col3 = st.columns(3)
 with row2_col1:
     school_input = st.text_input("중학교 (예: OO중)")
@@ -168,28 +182,32 @@ with row2_col3:
 st.markdown("---")
 
 # =========================================================
-# 2단계: 체험 프로그램 선택
+# 2단계: 체험 프로그램 선택 (⚡속도 개선됨)
 # =========================================================
 st.subheader("2. 체험 프로그램 선택")
 
-# 날짜 및 학교 선택
+# 1. 날짜 및 학교 선택
 selected_date = st.selectbox("날짜 선택", list(SCHEDULE.keys()))
 available_schools = list(SCHEDULE[selected_date].keys())
 selected_school = st.selectbox("체험할 고등학교 선택", available_schools)
 
-# 선택된 학교에 맞는 프로그램 목록 가져오기
+# 2. 데이터 가져오기 (여기서 딱 한 번만 가져옵니다! -> 딜레이 해결)
+#    UI 표시용이므로 캐시된 데이터를 사용합니다.
+cached_df = load_data_cached()
+
 raw_programs_data = SCHEDULE[selected_date][selected_school]
 
 display_options = []
 display_map = {} 
 limit_map = {}
 
-# 마감 여부 실시간 확인 로직
+# 3. 가져온 데이터(cached_df)로 숫자 세기 (구글 접속 안 함 -> 엄청 빠름)
 for item in raw_programs_data:
     prog_name = item["name"]   
     prog_limit = item["limit"] 
     
-    current_count = get_program_count(selected_date, selected_school, prog_name)
+    # 메모리에 있는 데이터로 계산
+    current_count = count_in_dataframe(cached_df, selected_date, selected_school, prog_name)
     
     if current_count >= prog_limit:
         display_text = f"🚫 [마감] {prog_name}"
@@ -226,14 +244,17 @@ if st.button("✅ 위 내용으로 신청하기", use_container_width=True):
     else:
         formatted_phone = format_phone_number(phone_input)
         
-        # 4. 최종 인원 마감 재확인
-        final_count = get_program_count(selected_date, selected_school, real_program_name)
+        # 4. [중요] 최종 마감 재확인 (여기서는 실시간 데이터 사용!)
+        #    동시 접속자가 많을 때, 화면엔 자리 있다고 나왔어도 실제론 찼을 수 있으니까요.
+        fresh_df = load_data_fresh() 
+        final_count = count_in_dataframe(fresh_df, selected_date, selected_school, real_program_name)
         
         if final_count >= current_limit:
             st.error(f"😭 아쉽지만 방금 마감되었습니다. (정원 {current_limit}명 초과)")
+            load_data_cached.clear() # 캐시 초기화 (마감 정보 갱신)
         else:
-            # 5. 중복 신청 확인
-            user_history = get_user_history(name_input, formatted_phone)
+            # 5. 중복 신청 확인 (실시간 데이터 기준)
+            user_history = get_user_history(fresh_df, name_input, formatted_phone)
             
             date_dup = pd.DataFrame()
             prog_dup = pd.DataFrame()
@@ -268,4 +289,3 @@ with st.expander("관리자 메뉴"):
     st.write("데이터는 구글 스프레드시트에 실시간으로 저장되고 있습니다.")
     if 'SHEET_URL' in locals():
         st.link_button("📊 구글 시트로 이동하여 명단 확인하기", SHEET_URL)
-
