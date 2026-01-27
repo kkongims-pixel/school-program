@@ -25,7 +25,7 @@ except Exception as e:
     st.stop()
 
 # --------------------------------------------------------------------------
-# 2. 프로그램 일정 및 정원 설정 (선생님 수정 구역)
+# 2. 프로그램 일정 및 정원 설정
 # --------------------------------------------------------------------------
 SCHEDULE = {
     "2월 1일": {
@@ -124,17 +124,15 @@ if now_kst < open_time:
     st.stop() 
 
 # --------------------------------------------------------------------------
-# 5. 메인 화면 및 로직 (수정된 부분)
+# 5. 메인 화면 구성 (순서 변경 완료: 정보입력 -> 프로그램선택)
 # --------------------------------------------------------------------------
 st.title("🏫 중학교 직업체험 신청")
 
 st.markdown("""
 ### 📢 [신청 전 유의사항]
-1. **날짜를 먼저 선택**해야 해당 일자의 학교 및 프로그램 목록이 나타납니다.
-2. **같은 날짜**에는 **1개의 프로그램**만 신청할 수 있습니다.
-3. 이전에 신청했던 프로그램과 **동일한 프로그램은 중복 신청이 불가능**합니다.
-4. 각 프로그램은 **설정된 정원(선착순)** 마감입니다.
-5. 본인 확인을 위해 **이름과 연락처를 정확하게** 입력해주세요.
+1. **학생 정보를 먼저 입력**해주세요.
+2. 날짜와 학교를 선택하면 해당 프로그램 목록이 나타납니다.
+3. 각 프로그램은 **선착순 마감**입니다.
 """)
 
 st.info("""
@@ -145,23 +143,39 @@ st.info("""
 st.markdown("---")
 
 # =========================================================
-# [중요] 선택 메뉴를 form 밖으로 꺼냈습니다! (즉시 반응하도록)
+# 1단계: 학생 정보 입력 (맨 위로 이동!)
 # =========================================================
-st.subheader("1. 체험 프로그램 선택")
+st.subheader("1. 학생 정보 입력")
 
-# 1. 날짜 및 학교 선택 (여기서 바꾸면 바로바로 화면이 바뀝니다)
+col1, col2 = st.columns(2)
+with col1:
+    name_input = st.text_input("이름 (예: 홍길동)")
+    school_input = st.text_input("중학교 (예: OO중)")
+    grade_input = st.selectbox("학년", ["1학년", "2학년", "3학년"])
+with col2:
+    phone_input = st.text_input("연락처 (숫자만 입력)", max_chars=11)
+    class_input = st.text_input("반 (숫자만 입력)")
+
+st.markdown("---")
+
+# =========================================================
+# 2단계: 체험 프로그램 선택 (아래로 이동!)
+# =========================================================
+st.subheader("2. 체험 프로그램 선택")
+
+# 날짜 및 학교 선택
 selected_date = st.selectbox("날짜 선택", list(SCHEDULE.keys()))
 available_schools = list(SCHEDULE[selected_date].keys())
 selected_school = st.selectbox("체험할 고등학교 선택", available_schools)
 
-# 2. 선택된 학교에 맞는 프로그램 목록 가져오기
+# 선택된 학교에 맞는 프로그램 목록 가져오기
 raw_programs_data = SCHEDULE[selected_date][selected_school]
 
 display_options = []
 display_map = {} 
 limit_map = {}
 
-# 마감 여부 실시간 확인
+# 마감 여부 실시간 확인 로직
 for item in raw_programs_data:
     prog_name = item["name"]   
     prog_limit = item["limit"] 
@@ -177,7 +191,7 @@ for item in raw_programs_data:
     display_map[display_text] = prog_name
     limit_map[prog_name] = prog_limit 
 
-# 3. 프로그램 선택창 표시
+# 프로그램 선택 박스
 selected_display = st.selectbox("프로그램 선택", display_options)
 real_program_name = display_map[selected_display]
 current_limit = limit_map[real_program_name]
@@ -185,72 +199,67 @@ current_limit = limit_map[real_program_name]
 st.markdown("---")
 
 # =========================================================
-# 학생 정보 입력 및 제출 버튼 (여기는 form으로 감싸서 한 번에 제출)
+# 3단계: 최종 신청 버튼
 # =========================================================
-st.subheader("2. 학생 정보 입력")
-
-with st.form("application_form"):
-    col1, col2 = st.columns(2)
-    with col1:
-        name_input = st.text_input("이름 (예: 홍길동)")
-        school_input = st.text_input("중학교 (예: OO중)")
-        grade_input = st.selectbox("학년", ["1학년", "2학년", "3학년"])
-    with col2:
-        phone_input = st.text_input("연락처 (숫자만 입력)", max_chars=11)
-        class_input = st.text_input("반 (숫자만 입력)")
-
-    st.markdown("---")
-    submitted = st.form_submit_button("위 내용으로 신청하기", use_container_width=True)
-
-    # 제출 버튼을 눌렀을 때 처리
-    if submitted:
-        if not name_input or not phone_input or not school_input or not class_input:
-            st.error("모든 정보를 입력해주세요.")
-        elif not phone_input.isdigit():
-            st.warning("연락처에는 숫자만 입력해주세요.")
-        elif len(phone_input) != 11:
-            st.warning("연락처 11자리를 모두 입력해주세요.")
-        elif not phone_input.startswith("010"):
-            st.warning("연락처는 010으로 시작해야 합니다.")
-        elif "[마감]" in selected_display:
-            st.error("선택하신 프로그램은 이미 마감되었습니다.")
+# 버튼을 누르면 모든 정보를 한꺼번에 검사하고 저장합니다.
+if st.button("✅ 위 내용으로 신청하기", use_container_width=True):
+    
+    # 1. 입력값 검증 (비어있는지 확인)
+    if not name_input or not phone_input or not school_input or not class_input:
+        st.error("❌ 학생 정보를 모두 입력해주세요.")
+    
+    # 2. 연락처 검증
+    elif not phone_input.isdigit():
+        st.warning("연락처에는 숫자만 입력해주세요.")
+    elif len(phone_input) != 11:
+        st.warning("연락처 11자리를 모두 입력해주세요.")
+    elif not phone_input.startswith("010"):
+        st.warning("연락처는 010으로 시작해야 합니다.")
+        
+    # 3. 마감 여부 검증
+    elif "[마감]" in selected_display:
+        st.error("❌ 선택하신 프로그램은 이미 마감되었습니다.")
+        
+    else:
+        formatted_phone = format_phone_number(phone_input)
+        
+        # 4. 최종 인원 마감 재확인 (동시 접속 대비)
+        final_count = get_program_count(selected_date, selected_school, real_program_name)
+        
+        if final_count >= current_limit:
+            st.error(f"😭 아쉽지만 방금 마감되었습니다. (정원 {current_limit}명 초과)")
         else:
-            formatted_phone = format_phone_number(phone_input)
+            # 5. 중복 신청 확인
+            user_history = get_user_history(name_input, formatted_phone)
             
-            # 최종 마감 재확인
-            final_count = get_program_count(selected_date, selected_school, real_program_name)
+            date_dup = pd.DataFrame()
+            prog_dup = pd.DataFrame()
             
-            if final_count >= current_limit:
-                st.error(f"아쉽지만 방금 마감되었습니다. (정원 {current_limit}명 초과)")
+            if not user_history.empty:
+                date_dup = user_history[user_history['체험날짜'] == selected_date]
+                prog_dup = user_history[user_history['프로그램'] == real_program_name]
+            
+            if not date_dup.empty:
+                st.error(f"🚫 '{selected_date}'에는 이미 신청 내역이 있어 중복 신청할 수 없습니다.")
+            elif not prog_dup.empty:
+                st.error(f"🚫 '{real_program_name}' 프로그램은 이미 신청하셨습니다.")
             else:
-                user_history = get_user_history(name_input, formatted_phone)
+                # 6. 저장 실행
+                new_entry_list = [
+                    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    name_input,
+                    formatted_phone,
+                    school_input,
+                    grade_input,
+                    class_input,
+                    selected_date,
+                    selected_school,
+                    real_program_name
+                ]
                 
-                date_dup = pd.DataFrame()
-                prog_dup = pd.DataFrame()
-                
-                if not user_history.empty:
-                    date_dup = user_history[user_history['체험날짜'] == selected_date]
-                    prog_dup = user_history[user_history['프로그램'] == real_program_name]
-                
-                if not date_dup.empty:
-                    st.error(f"🚫 '{selected_date}'에는 이미 신청 내역이 있어 중복 신청할 수 없습니다.")
-                elif not prog_dup.empty:
-                    st.error(f"🚫 '{real_program_name}' 프로그램은 이미 신청하셨습니다.")
-                else:
-                    new_entry_list = [
-                        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        name_input,
-                        formatted_phone,
-                        school_input,
-                        grade_input,
-                        class_input,
-                        selected_date,
-                        selected_school,
-                        real_program_name
-                    ]
-                    
-                    save_data(new_entry_list)
-                    st.success(f"✅ 신청완료! 명단에 안전하게 저장되었습니다.")
+                save_data(new_entry_list)
+                st.success(f"🎉 신청이 완료되었습니다! ({real_program_name})")
+                st.balloons() # 축하 풍선 효과
 
 # 관리자 메뉴
 with st.expander("관리자 메뉴"):
