@@ -27,7 +27,6 @@ except Exception as e:
 # --------------------------------------------------------------------------
 # 2. 프로그램 일정 및 정원 설정 (선생님 수정 구역)
 # --------------------------------------------------------------------------
-# 형식: {"name": "프로그램이름", "limit": 정원숫자}
 SCHEDULE = {
     "2월 1일": {
         "A고등학교": [
@@ -71,7 +70,6 @@ COLUMNS = ["신청일시", "이름", "연락처", "소속학교", "학년", "반
 # 3. 데이터 처리 함수
 # --------------------------------------------------------------------------
 def load_data():
-    """구글 시트에서 데이터 불러오기"""
     try:
         data = sheet.get_all_values()
         if len(data) <= 1: 
@@ -81,11 +79,9 @@ def load_data():
         return pd.DataFrame(columns=COLUMNS)
 
 def save_data(new_entry_list):
-    """구글 시트에 저장하기"""
     sheet.append_row(new_entry_list)
 
 def get_program_count(date, school, program_name):
-    """현재 신청 인원 세기"""
     df = load_data()
     if df.empty: return 0
     filtered = df[
@@ -96,13 +92,11 @@ def get_program_count(date, school, program_name):
     return len(filtered)
 
 def get_user_history(name, phone):
-    """사용자 중복 신청 내역 확인"""
     df = load_data()
     if df.empty: return pd.DataFrame(columns=COLUMNS)
     return df[(df['이름'].str.strip() == name.strip()) & (df['연락처'].str.strip() == phone.strip())]
 
 def format_phone_number(phone):
-    """전화번호 하이픈 넣기"""
     if len(phone) == 11 and phone.isdigit():
         return f"{phone[:3]}-{phone[3:7]}-{phone[7:]}"
     return phone
@@ -110,8 +104,6 @@ def format_phone_number(phone):
 # --------------------------------------------------------------------------
 # 4. [오픈런] 시간 통제 설정
 # --------------------------------------------------------------------------
-# ⚠️ 테스트를 위해 현재 시간보다 '과거'로 설정해두었습니다. (바로 접속 가능)
-# 실제 운영하실 때는 아래 숫자를 행사 시작 시간으로 바꾸세요!
 OPEN_YEAR = 2024
 OPEN_MONTH = 1
 OPEN_DAY = 1
@@ -132,7 +124,7 @@ if now_kst < open_time:
     st.stop() 
 
 # --------------------------------------------------------------------------
-# 5. 메인 화면 및 신청 폼 (여기가 에러 났던 부분! 수정 완료)
+# 5. 메인 화면 및 로직 (수정된 부분)
 # --------------------------------------------------------------------------
 st.title("🏫 중학교 직업체험 신청")
 
@@ -150,10 +142,54 @@ st.info("""
 신청하기 버튼을 누르시면 위 내용에 동의하는 것으로 간주됩니다.
 """)
 
-# 신청 폼 시작
+st.markdown("---")
+
+# =========================================================
+# [중요] 선택 메뉴를 form 밖으로 꺼냈습니다! (즉시 반응하도록)
+# =========================================================
+st.subheader("1. 체험 프로그램 선택")
+
+# 1. 날짜 및 학교 선택 (여기서 바꾸면 바로바로 화면이 바뀝니다)
+selected_date = st.selectbox("날짜 선택", list(SCHEDULE.keys()))
+available_schools = list(SCHEDULE[selected_date].keys())
+selected_school = st.selectbox("체험할 고등학교 선택", available_schools)
+
+# 2. 선택된 학교에 맞는 프로그램 목록 가져오기
+raw_programs_data = SCHEDULE[selected_date][selected_school]
+
+display_options = []
+display_map = {} 
+limit_map = {}
+
+# 마감 여부 실시간 확인
+for item in raw_programs_data:
+    prog_name = item["name"]   
+    prog_limit = item["limit"] 
+    
+    current_count = get_program_count(selected_date, selected_school, prog_name)
+    
+    if current_count >= prog_limit:
+        display_text = f"🚫 [마감] {prog_name}"
+    else:
+        display_text = f"{prog_name} (신청: {current_count}/{prog_limit}명)"
+    
+    display_options.append(display_text)
+    display_map[display_text] = prog_name
+    limit_map[prog_name] = prog_limit 
+
+# 3. 프로그램 선택창 표시
+selected_display = st.selectbox("프로그램 선택", display_options)
+real_program_name = display_map[selected_display]
+current_limit = limit_map[real_program_name]
+
+st.markdown("---")
+
+# =========================================================
+# 학생 정보 입력 및 제출 버튼 (여기는 form으로 감싸서 한 번에 제출)
+# =========================================================
+st.subheader("2. 학생 정보 입력")
+
 with st.form("application_form"):
-    # 1. 학생 정보
-    st.markdown("### 1. 학생 정보 입력")
     col1, col2 = st.columns(2)
     with col1:
         name_input = st.text_input("이름 (예: 홍길동)")
@@ -164,45 +200,9 @@ with st.form("application_form"):
         class_input = st.text_input("반 (숫자만 입력)")
 
     st.markdown("---")
-    
-    # 2. 프로그램 선택
-    st.subheader("2. 체험 프로그램 선택")
-    
-    selected_date = st.selectbox("날짜 선택", list(SCHEDULE.keys()))
-    available_schools = list(SCHEDULE[selected_date].keys())
-    selected_school = st.selectbox("체험할 고등학교 선택", available_schools)
-    
-    # 선택된 학교의 프로그램 목록(이름+정원) 가져오기
-    raw_programs_data = SCHEDULE[selected_date][selected_school]
-    
-    display_options = []
-    display_map = {} 
-    limit_map = {}
-
-    # 마감 여부 확인 로직
-    for item in raw_programs_data:
-        prog_name = item["name"]   
-        prog_limit = item["limit"] 
-        
-        current_count = get_program_count(selected_date, selected_school, prog_name)
-        
-        if current_count >= prog_limit:
-            display_text = f"🚫 [마감] {prog_name}"
-        else:
-            display_text = f"{prog_name} (신청: {current_count}/{prog_limit}명)"
-        
-        display_options.append(display_text)
-        display_map[display_text] = prog_name
-        limit_map[prog_name] = prog_limit 
-
-    selected_display = st.selectbox("프로그램 선택", display_options)
-    real_program_name = display_map[selected_display]
-    current_limit = limit_map[real_program_name]
-
-    st.markdown("---")
     submitted = st.form_submit_button("위 내용으로 신청하기", use_container_width=True)
 
-    # 3. 제출 후 검증 및 저장
+    # 제출 버튼을 눌렀을 때 처리
     if submitted:
         if not name_input or not phone_input or not school_input or not class_input:
             st.error("모든 정보를 입력해주세요.")
@@ -217,7 +217,7 @@ with st.form("application_form"):
         else:
             formatted_phone = format_phone_number(phone_input)
             
-            # 최종 인원 재확인 (동시 접속 방지)
+            # 최종 마감 재확인
             final_count = get_program_count(selected_date, selected_school, real_program_name)
             
             if final_count >= current_limit:
@@ -252,7 +252,7 @@ with st.form("application_form"):
                     save_data(new_entry_list)
                     st.success(f"✅ 신청완료! 명단에 안전하게 저장되었습니다.")
 
-# 관리자용 메뉴 (하단)
+# 관리자 메뉴
 with st.expander("관리자 메뉴"):
     st.write("데이터는 구글 스프레드시트에 실시간으로 저장되고 있습니다.")
     if 'SHEET_URL' in locals():
