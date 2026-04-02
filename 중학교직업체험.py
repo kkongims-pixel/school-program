@@ -27,7 +27,7 @@ except Exception as e:
 # --------------------------------------------------------------------------
 # 2. 프로그램 일정 및 정원 설정
 # --------------------------------------------------------------------------
-RESERVE_LIMIT = 5  # 예비 인원 5명
+RESERVE_LIMIT = 2  # 예비 인원 2명
 
 SCHEDULE = {
     "2월 1일": {
@@ -140,7 +140,7 @@ if now_kst < open_time:
 # 5. 메인 화면 구성
 # --------------------------------------------------------------------------
 # 🔴 [수정됨] 기존 st.title()을 지우고, 글자 크기를 22px로 줄인 HTML 코드로 변경했습니다!
-st.markdown("<h2 style='font-size: 22px; font-weight: bold; word-break: keep-all; margin-bottom: 20px;'>🏫 2026년 신산업분야 중학생 직업체험 프로그램 신청</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='font-size: 30px; font-weight: bold; word-break: keep-all; margin-bottom: 20px;'>🏫 2026년 신산업분야 중학생 직업체험 프로그램 신청</h2>", unsafe_allow_html=True)
 
 st.markdown("""
 ### 📢 [신청 전 유의사항]
@@ -148,7 +148,8 @@ st.markdown("""
 2. **같은 날짜**에는 **1개의 프로그램**만 신청할 수 있습니다.
 3. 이전에 신청했던 프로그램과 **동일한 프로그램은 중복 신청이 불가능**합니다.
 4. 각 프로그램은 **설정된 정원(선착순)** 마감입니다.
-5. 본인 확인을 위해 **이름과 연락처를 정확하게** 입력해주세요.
+5. **예비 신청자**는 정원 내 취소자가 발생할 경우 **순차적**으로 연락드립니다.
+6. 본인 확인을 위해 **이름과 연락처를 정확하게** 입력해주세요.
 """)
 
 st.info("""
@@ -202,7 +203,7 @@ for item in raw_programs_data:
     current_count = count_in_dataframe(cached_df, selected_date, selected_school, prog_name)
     
     if current_count >= (prog_limit + RESERVE_LIMIT):
-        display_text = f"🚫 [완전 마감] {prog_name} (정원 및 예비 마감)"
+        display_text = f"🚫 [마감] {prog_name} (정원 및 예비 마감)"
     elif current_count >= prog_limit:
         res_num = current_count - prog_limit + 1
         display_text = f"⚠️ [예비신청 가능] {prog_name} (현재 예비 {res_num}/{RESERVE_LIMIT}번)"
@@ -222,7 +223,7 @@ st.markdown("---")
 # =========================================================
 # 3단계: 최종 신청 버튼
 # =========================================================
-if st.button("✅ 위 내용으로 신청하기", use_container_width=True):
+if st.button("🚀 신청하기", use_container_width=True, type="primary"):
     
     if not name_input or not phone_input or not school_input or not class_input:
         st.error("❌ 학생 정보를 모두 입력해주세요.")
