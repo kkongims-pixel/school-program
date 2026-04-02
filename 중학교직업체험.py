@@ -68,7 +68,6 @@ SCHEDULE = {
     }
 }
 
-# 🔴 [추가됨] 맨 끝에 "접수상태" 열을 추가했습니다!
 COLUMNS = ["신청일시", "이름", "연락처", "소속학교", "학년", "반", "체험날짜", "학교", "프로그램", "접수상태"]
 
 # --------------------------------------------------------------------------
@@ -147,7 +146,7 @@ st.markdown("""
 1. **날짜를 먼저 선택**해야 해당 일자의 학교 및 프로그램 목록이 나타납니다.
 2. **같은 날짜**에는 **1개의 프로그램**만 신청할 수 있습니다.
 3. 이전에 신청했던 프로그램과 **동일한 프로그램은 중복 신청이 불가능**합니다.
-4. 각 프로그램은 **설정된 정원 10명(선착순)** 마감입니다.
+4. 각 프로그램은 **설정된 정원(선착순)** 마감입니다.
 5. **예비 신청자**는 정원 내 취소자가 발생할 경우 **순차적**으로 연락드립니다.
 6. 본인 확인을 위해 **이름과 연락처를 정확하게** 입력해주세요.
 """)
@@ -259,15 +258,15 @@ if st.button("✅ 위 내용으로 신청하기", use_container_width=True):
             elif not prog_dup.empty:
                 st.error(f"🚫 '{real_program_name}' 프로그램은 이미 신청하셨습니다.")
             else:
-                # 🔴 [핵심 로직] 시트에 기록할 번호/예비번호 계산하기
                 if final_count < current_limit:
-                    status_text = str(final_count + 1) # 정원 내 (1, 2, 3...)
+                    status_text = str(final_count + 1) 
                 else:
                     reserve_no = final_count - current_limit + 1
-                    status_text = f"예비 {reserve_no}" # 예비 (예비 1, 예비 2...)
+                    status_text = f"예비 {reserve_no}" 
 
+                # 🔴 [시간 수정됨] datetime.now(kst)로 한국 시간 강제 적용!
                 new_entry_list = [
-                    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    datetime.now(kst).strftime("%Y-%m-%d %H:%M:%S"),
                     name_input,
                     formatted_phone,
                     school_input,
@@ -276,7 +275,7 @@ if st.button("✅ 위 내용으로 신청하기", use_container_width=True):
                     selected_date,
                     selected_school,
                     real_program_name,
-                    status_text  # 👈 여기에 계산된 상태가 시트의 마지막 열에 들어갑니다!
+                    status_text  
                 ]
                 
                 save_data(new_entry_list)
