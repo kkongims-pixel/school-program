@@ -140,7 +140,7 @@ if now_kst < open_time:
 # 5. 메인 화면 구성
 # --------------------------------------------------------------------------
 # 🔴 [수정됨] 기존 st.title()을 지우고, 글자 크기를 22px로 줄인 HTML 코드로 변경했습니다!
-st.markdown("<h2 style='font-size: 22px; font-weight: bold; word-break: keep-all; margin-bottom: 20px;'>🏫 2026년 신산업분야 중학생 직업체험 프로그램 신청</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='font-size: 30px; font-weight: bold; word-break: keep-all; margin-bottom: 20px;'>🏫 2026년 신산업분야 중학생 직업체험 프로그램 신청</h2>", unsafe_allow_html=True)
 
 st.markdown("""
 ### 📢 [신청 전 유의사항]
