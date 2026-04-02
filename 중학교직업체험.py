@@ -133,17 +133,22 @@ st.info("""
 st.markdown("---")
 
 # =========================================================
-# 1단계: 학생 정보 입력
+# 1단계: 학생 정보 입력 (에러 난 부분 수정 완료!)
 # =========================================================
 st.subheader("1. 학생 정보 입력")
 r1c1, r1c2 = st.columns(2)
-with r1c1: name_input = st.text_input("이름 (예: 홍길동)")
-with r1c2: phone_input = st.text_input("연락처 (숫자만 입력)", max_chars=11)
+with r1c1: 
+    name_input = st.text_input("이름 (예: 홍길동)")
+with r1c2: 
+    phone_input = st.text_input("연락처 (숫자만 입력)", max_chars=11)
 
 r2c1, r2c2, r2c3 = st.columns(3)
-with row2_col1 := r2c1: school_input = st.text_input("중학교 (예: OO중)")
-with row2_col2 := r2c2: grade_input = st.selectbox("학년", ["1학년", "2학년", "3학년"])
-with row2_col3 := r2c3: class_input = st.text_input("반 (숫자만 입력)")
+with r2c1: 
+    school_input = st.text_input("중학교 (예: OO중)")
+with r2c2: 
+    grade_input = st.selectbox("학년", ["1학년", "2학년", "3학년"])
+with r2c3: 
+    class_input = st.text_input("반 (숫자만 입력)")
 
 st.markdown("---")
 
@@ -184,7 +189,6 @@ st.markdown("---")
 # =========================================================
 # 3단계: 최종 신청 버튼 (🔴 버튼 문구 및 강조 수정)
 # =========================================================
-# 버튼을 더 크고 눈에 띄게 만들기 위해 CSS를 살짝 활용하거나 이모지를 강조합니다.
 st.write("") # 간격 조절
 if st.button("🚀 신청하기", use_container_width=True, type="primary"):
     
