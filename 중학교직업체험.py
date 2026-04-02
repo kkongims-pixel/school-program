@@ -25,7 +25,7 @@ except Exception as e:
     st.stop()
 
 # --------------------------------------------------------------------------
-# 2. 프로그램 일정 및 정원 설정 (모든 프로그램 정원 10명으로 통일!)
+# 2. 프로그램 일정 및 정원 설정 
 # --------------------------------------------------------------------------
 RESERVE_LIMIT = 5  # 예비 인원 5명
 
@@ -68,7 +68,8 @@ SCHEDULE = {
     }
 }
 
-COLUMNS = ["신청일시", "이름", "연락처", "소속학교", "학년", "반", "체험날짜", "학교", "프로그램"]
+# 🔴 [추가됨] 맨 끝에 "접수상태" 열을 추가했습니다!
+COLUMNS = ["신청일시", "이름", "연락처", "소속학교", "학년", "반", "체험날짜", "학교", "프로그램", "접수상태"]
 
 # --------------------------------------------------------------------------
 # 3. 데이터 처리 함수
@@ -147,7 +148,7 @@ st.markdown("""
 2. **같은 날짜**에는 **1개의 프로그램**만 신청할 수 있습니다.
 3. 이전에 신청했던 프로그램과 **동일한 프로그램은 중복 신청이 불가능**합니다.
 4. 각 프로그램은 **설정된 정원 10명(선착순)** 마감입니다.
-5. 취소된 인원이 생길 경우를 위해 **예비 5명 추가** 신청 받습니다.
+5. **예비 신청자**는 정원 내 취소자가 발생할 경우 **순차적**으로 연락드립니다.
 6. 본인 확인을 위해 **이름과 연락처를 정확하게** 입력해주세요.
 """)
 
@@ -180,7 +181,7 @@ with row2_col3:
 st.markdown("---")
 
 # =========================================================
-# 2단계: 체험 프로그램 선택 (⚡인원 표시 명확하게 변경)
+# 2단계: 체험 프로그램 선택
 # =========================================================
 st.subheader("2. 체험 프로그램 선택")
 
@@ -201,7 +202,6 @@ for item in raw_programs_data:
     
     current_count = count_in_dataframe(cached_df, selected_date, selected_school, prog_name)
     
-    # 🔴 [화면 표시 문구 수정] 학생이 직관적으로 몇 명 남았는지 알 수 있게 변경
     if current_count >= (prog_limit + RESERVE_LIMIT):
         display_text = f"🚫 [완전 마감] {prog_name} (정원 및 예비 마감)"
     elif current_count >= prog_limit:
@@ -259,6 +259,13 @@ if st.button("✅ 위 내용으로 신청하기", use_container_width=True):
             elif not prog_dup.empty:
                 st.error(f"🚫 '{real_program_name}' 프로그램은 이미 신청하셨습니다.")
             else:
+                # 🔴 [핵심 로직] 시트에 기록할 번호/예비번호 계산하기
+                if final_count < current_limit:
+                    status_text = str(final_count + 1) # 정원 내 (1, 2, 3...)
+                else:
+                    reserve_no = final_count - current_limit + 1
+                    status_text = f"예비 {reserve_no}" # 예비 (예비 1, 예비 2...)
+
                 new_entry_list = [
                     datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     name_input,
@@ -268,7 +275,8 @@ if st.button("✅ 위 내용으로 신청하기", use_container_width=True):
                     class_input,
                     selected_date,
                     selected_school,
-                    real_program_name
+                    real_program_name,
+                    status_text  # 👈 여기에 계산된 상태가 시트의 마지막 열에 들어갑니다!
                 ]
                 
                 save_data(new_entry_list)
@@ -278,3 +286,9 @@ if st.button("✅ 위 내용으로 신청하기", use_container_width=True):
                     st.balloons()
                 else:
                     reserve_no = final_count - current_limit + 1
+                    st.warning(f"예비 {reserve_no}번으로 접수되었습니다.")
+
+with st.expander("관리자 메뉴"):
+    st.write("데이터는 구글 스프레드시트에 실시간으로 저장되고 있습니다.")
+    if 'SHEET_URL' in locals():
+        st.link_button("📊 구글 시트로 이동하여 명단 확인하기", SHEET_URL)
