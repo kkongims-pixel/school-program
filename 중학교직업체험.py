@@ -170,7 +170,7 @@ for item in raw_programs_data:
     current_count = count_in_dataframe(cached_df, selected_date, selected_school, prog_name)
     
     if current_count >= (prog_limit + RESERVE_LIMIT):
-        display_text = f"🚫 [완전 마감] {prog_name}"
+        display_text = f"🚫 [마감] {prog_name}"
     elif current_count >= prog_limit:
         res_num = current_count - prog_limit + 1
         display_text = f"⚠️ [예비신청 가능] {prog_name} (예비 {res_num}/{RESERVE_LIMIT}번)"
@@ -200,7 +200,7 @@ if st.button("🚀 신청하기", use_container_width=True, type="primary"):
         st.warning("연락처 11자리를 모두 입력해주세요.")
     elif not phone_input.startswith("010"):
         st.warning("연락처는 010으로 시작해야 합니다.")
-    elif "[완전 마감]" in selected_display:
+    elif "[마감]" in selected_display:
         st.error("❌ 이미 예비 인원까지 모두 마감되었습니다.")
     else:
         formatted_phone = format_phone_number(phone_input)
