@@ -114,7 +114,7 @@ now_kst = datetime.now(kst)
 # 5. 메인 화면 구성
 # --------------------------------------------------------------------------
 # 제목 크기 조정 (한 줄로 나오게)
-st.markdown("<h2 style='font-size: 22px; font-weight: bold; word-break: keep-all; margin-bottom: 20px;'>🏫 2026년 신산업분야 중학생 직업체험 프로그램 신청</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='font-size: 30px; font-weight: bold; word-break: keep-all; margin-bottom: 20px;'>🏫 2026년 신산업분야 중학생 직업체험 프로그램 신청</h2>", unsafe_allow_html=True)
 
 st.markdown("""
 ### 📢 [신청 전 유의사항]
