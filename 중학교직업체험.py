@@ -25,9 +25,9 @@ except Exception as e:
     st.stop()
 
 # --------------------------------------------------------------------------
-# 2. 프로그램 일정 및 정원 설정 (정원 10명, 예비 2명)
+# 2. 프로그램 일정 및 정원 설정
 # --------------------------------------------------------------------------
-RESERVE_LIMIT = 2  # 🔴 예비 인원을 2명으로 수정했습니다.
+RESERVE_LIMIT = 5  # 예비 인원 5명
 
 SCHEDULE = {
     "2월 1일": {
@@ -77,16 +77,20 @@ COLUMNS = ["신청일시", "이름", "연락처", "소속학교", "학년", "반
 def load_data_cached():
     try:
         data = sheet.get_all_values()
-        if len(data) <= 1: return pd.DataFrame(columns=COLUMNS)
+        if len(data) <= 1: 
+            return pd.DataFrame(columns=COLUMNS)
         return pd.DataFrame(data[1:], columns=data[0])
-    except: return pd.DataFrame(columns=COLUMNS)
+    except:
+        return pd.DataFrame(columns=COLUMNS)
 
 def load_data_fresh():
     try:
         data = sheet.get_all_values()
-        if len(data) <= 1: return pd.DataFrame(columns=COLUMNS)
+        if len(data) <= 1: 
+            return pd.DataFrame(columns=COLUMNS)
         return pd.DataFrame(data[1:], columns=data[0])
-    except: return pd.DataFrame(columns=COLUMNS)
+    except:
+        return pd.DataFrame(columns=COLUMNS)
 
 def save_data(new_entry_list):
     sheet.append_row(new_entry_list)
@@ -94,27 +98,49 @@ def save_data(new_entry_list):
 
 def count_in_dataframe(df, date, school, program_name):
     if df.empty: return 0
-    return len(df[(df['체험날짜'] == date) & (df['학교'] == school) & (df['프로그램'] == program_name)])
+    filtered = df[
+        (df['체험날짜'] == date) & 
+        (df['학교'] == school) & 
+        (df['프로그램'] == program_name)
+    ]
+    return len(filtered)
 
 def get_user_history(df, name, phone):
     if df.empty: return pd.DataFrame(columns=COLUMNS)
     return df[(df['이름'].str.strip() == name.strip()) & (df['연락처'].str.strip() == phone.strip())]
 
 def format_phone_number(phone):
-    if len(phone) == 11 and phone.isdigit(): return f"{phone[:3]}-{phone[3:7]}-{phone[7:]}"
+    if len(phone) == 11 and phone.isdigit():
+        return f"{phone[:3]}-{phone[3:7]}-{phone[7:]}"
     return phone
 
 # --------------------------------------------------------------------------
-# 4. 시간 설정 (KST)
+# 4. [오픈런] 시간 통제 설정
 # --------------------------------------------------------------------------
+OPEN_YEAR = 2024
+OPEN_MONTH = 1
+OPEN_DAY = 1
+OPEN_HOUR = 9
+OPEN_MINUTE = 0
+
 kst = pytz.timezone('Asia/Seoul')
 now_kst = datetime.now(kst)
+open_time = datetime(OPEN_YEAR, OPEN_MONTH, OPEN_DAY, OPEN_HOUR, OPEN_MINUTE, 0, tzinfo=kst)
+
+if now_kst < open_time:
+    st.title("🚧 신청 기간이 아닙니다")
+    st.error(f"📢 신청 시작 시간: {open_time.strftime('%Y년 %m월 %d일 %H시 %M분')}")
+    st.info(f"🕰 현재 시간: {now_kst.strftime('%H시 %M분 %S초')}")
+    st.write("시간이 되면 아래 [새로고침] 버튼을 눌러주세요.")
+    if st.button("🔄 새로고침 (시간 확인)"):
+        st.rerun()
+    st.stop() 
 
 # --------------------------------------------------------------------------
 # 5. 메인 화면 구성
 # --------------------------------------------------------------------------
-# 제목 크기 조정 (한 줄로 나오게)
-st.markdown("<h2 style='font-size: 30px; font-weight: bold; word-break: keep-all; margin-bottom: 20px;'>🏫 2026년 신산업분야 중학생 직업체험 프로그램 신청</h2>", unsafe_allow_html=True)
+# 🔴 [수정됨] 기존 st.title()을 지우고, 글자 크기를 22px로 줄인 HTML 코드로 변경했습니다!
+st.markdown("<h2 style='font-size: 22px; font-weight: bold; word-break: keep-all; margin-bottom: 20px;'>🏫 2026년 신산업분야 중학생 직업체험 프로그램 신청</h2>", unsafe_allow_html=True)
 
 st.markdown("""
 ### 📢 [신청 전 유의사항]
@@ -122,32 +148,33 @@ st.markdown("""
 2. **같은 날짜**에는 **1개의 프로그램**만 신청할 수 있습니다.
 3. 이전에 신청했던 프로그램과 **동일한 프로그램은 중복 신청이 불가능**합니다.
 4. 각 프로그램은 **설정된 정원(선착순)** 마감입니다.
-5. **예비 신청자**는 정원 내 취소자가 발생할 경우 **순차적**으로 연락드립니다.
-6. 본인 확인을 위해 **이름과 연락처를 정확하게** 입력해주세요.
+5. 본인 확인을 위해 **이름과 연락처를 정확하게** 입력해주세요.
 """)
 
 st.info("""
 **🔒 [개인정보 수집 및 이용 안내]** 본 신청 페이지에서 수집하는 개인정보(이름, 연락처, 학교, 학년, 반)는 **'직업체험 프로그램' 운영 및 관리 목적**으로만 사용됩니다.
+신청하기 버튼을 누르시면 위 내용에 동의하는 것으로 간주됩니다.
 """)
 
 st.markdown("---")
 
 # =========================================================
-# 1단계: 학생 정보 입력 (에러 난 부분 수정 완료!)
+# 1단계: 학생 정보 입력
 # =========================================================
 st.subheader("1. 학생 정보 입력")
-r1c1, r1c2 = st.columns(2)
-with r1c1: 
+
+row1_col1, row1_col2 = st.columns(2)
+with row1_col1:
     name_input = st.text_input("이름 (예: 홍길동)")
-with r1c2: 
+with row1_col2:
     phone_input = st.text_input("연락처 (숫자만 입력)", max_chars=11)
 
-r2c1, r2c2, r2c3 = st.columns(3)
-with r2c1: 
+row2_col1, row2_col2, row2_col3 = st.columns(3)
+with row2_col1:
     school_input = st.text_input("중학교 (예: OO중)")
-with r2c2: 
+with row2_col2:
     grade_input = st.selectbox("학년", ["1학년", "2학년", "3학년"])
-with r2c3: 
+with row2_col3:
     class_input = st.text_input("반 (숫자만 입력)")
 
 st.markdown("---")
@@ -156,29 +183,35 @@ st.markdown("---")
 # 2단계: 체험 프로그램 선택
 # =========================================================
 st.subheader("2. 체험 프로그램 선택")
+
 selected_date = st.selectbox("날짜 선택", list(SCHEDULE.keys()))
-selected_school = st.selectbox("체험할 고등학교 선택", list(SCHEDULE[selected_date].keys()))
+available_schools = list(SCHEDULE[selected_date].keys())
+selected_school = st.selectbox("체험할 고등학교 선택", available_schools)
 
 cached_df = load_data_cached()
 raw_programs_data = SCHEDULE[selected_date][selected_school]
 
 display_options = []
-display_map, limit_map = {}, {}
+display_map = {} 
+limit_map = {}
 
 for item in raw_programs_data:
-    prog_name, prog_limit = item["name"], item["limit"]
+    prog_name = item["name"]   
+    prog_limit = item["limit"] 
+    
     current_count = count_in_dataframe(cached_df, selected_date, selected_school, prog_name)
     
     if current_count >= (prog_limit + RESERVE_LIMIT):
-        display_text = f"🚫 [마감] {prog_name}"
+        display_text = f"🚫 [완전 마감] {prog_name} (정원 및 예비 마감)"
     elif current_count >= prog_limit:
         res_num = current_count - prog_limit + 1
-        display_text = f"⚠️ [예비신청 가능] {prog_name} (예비 {res_num}/{RESERVE_LIMIT}번)"
+        display_text = f"⚠️ [예비신청 가능] {prog_name} (현재 예비 {res_num}/{RESERVE_LIMIT}번)"
     else:
         display_text = f"✅ [정원신청 가능] {prog_name} (신청현황: {current_count}/{prog_limit}명)"
     
     display_options.append(display_text)
-    display_map[display_text], limit_map[prog_name] = prog_name, prog_limit
+    display_map[display_text] = prog_name
+    limit_map[prog_name] = prog_limit 
 
 selected_display = st.selectbox("프로그램 선택", display_options)
 real_program_name = display_map[selected_display]
@@ -187,10 +220,9 @@ current_limit = limit_map[real_program_name]
 st.markdown("---")
 
 # =========================================================
-# 3단계: 최종 신청 버튼 (🔴 버튼 문구 및 강조 수정)
+# 3단계: 최종 신청 버튼
 # =========================================================
-st.write("") # 간격 조절
-if st.button("🚀 신청하기", use_container_width=True, type="primary"):
+if st.button("✅ 위 내용으로 신청하기", use_container_width=True):
     
     if not name_input or not phone_input or not school_input or not class_input:
         st.error("❌ 학생 정보를 모두 입력해주세요.")
@@ -200,10 +232,11 @@ if st.button("🚀 신청하기", use_container_width=True, type="primary"):
         st.warning("연락처 11자리를 모두 입력해주세요.")
     elif not phone_input.startswith("010"):
         st.warning("연락처는 010으로 시작해야 합니다.")
-    elif "[마감]" in selected_display:
+    elif "[완전 마감]" in selected_display:
         st.error("❌ 이미 예비 인원까지 모두 마감되었습니다.")
     else:
         formatted_phone = format_phone_number(phone_input)
+        
         fresh_df = load_data_fresh() 
         final_count = count_in_dataframe(fresh_df, selected_date, selected_school, real_program_name)
         
@@ -213,35 +246,45 @@ if st.button("🚀 신청하기", use_container_width=True, type="primary"):
         else:
             user_history = get_user_history(fresh_df, name_input, formatted_phone)
             
+            date_dup = pd.DataFrame()
+            prog_dup = pd.DataFrame()
+            
             if not user_history.empty:
                 date_dup = user_history[user_history['체험날짜'] == selected_date]
                 prog_dup = user_history[user_history['프로그램'] == real_program_name]
-                
-                if not date_dup.empty:
-                    st.error(f"🚫 '{selected_date}'에는 이미 신청 내역이 있어 중복 신청할 수 없습니다.")
-                elif not prog_dup.empty:
-                    st.error(f"🚫 '{real_program_name}' 프로그램은 이미 신청하셨습니다.")
+            
+            if not date_dup.empty:
+                st.error(f"🚫 '{selected_date}'에는 이미 신청 내역이 있어 중복 신청할 수 없습니다.")
+            elif not prog_dup.empty:
+                st.error(f"🚫 '{real_program_name}' 프로그램은 이미 신청하셨습니다.")
+            else:
+                if final_count < current_limit:
+                    status_text = str(final_count + 1) 
                 else:
-                    # 저장 로직
-                    if final_count < current_limit:
-                        status_text = str(final_count + 1)
-                    else:
-                        reserve_no = final_count - current_limit + 1
-                        status_text = f"예비 {reserve_no}"
+                    reserve_no = final_count - current_limit + 1
+                    status_text = f"예비 {reserve_no}" 
 
-                    new_entry_list = [
-                        datetime.now(kst).strftime("%Y-%m-%d %H:%M:%S"),
-                        name_input, formatted_phone, school_input, grade_input, class_input,
-                        selected_date, selected_school, real_program_name, status_text
-                    ]
-                    save_data(new_entry_list)
-                    
-                    if final_count < current_limit:
-                        st.success(f"🎉 신청이 완료되었습니다! ({real_program_name})")
-                        st.balloons()
-                    else:
-                        reserve_no = final_count - current_limit + 1
-                        st.warning(f"예비 {reserve_no}번으로 접수되었습니다.")
+                new_entry_list = [
+                    datetime.now(kst).strftime("%Y-%m-%d %H:%M:%S"),
+                    name_input,
+                    formatted_phone,
+                    school_input,
+                    grade_input,
+                    class_input,
+                    selected_date,
+                    selected_school,
+                    real_program_name,
+                    status_text  
+                ]
+                
+                save_data(new_entry_list)
+                
+                if final_count < current_limit:
+                    st.success(f"🎉 신청이 완료되었습니다! ({real_program_name})")
+                    st.balloons()
+                else:
+                    reserve_no = final_count - current_limit + 1
+                    st.warning(f"예비 {reserve_no}번으로 접수되었습니다.")
 
 with st.expander("관리자 메뉴"):
     st.write("데이터는 구글 스프레드시트에 실시간으로 저장되고 있습니다.")
