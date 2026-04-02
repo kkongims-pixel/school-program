@@ -139,7 +139,6 @@ if now_kst < open_time:
 # --------------------------------------------------------------------------
 # 5. 메인 화면 구성
 # --------------------------------------------------------------------------
-# 🔴 [수정됨] 기존 st.title()을 지우고, 글자 크기를 22px로 줄인 HTML 코드로 변경했습니다!
 st.markdown("<h2 style='font-size: 30px; font-weight: bold; word-break: keep-all; margin-bottom: 20px;'>🏫 2026년 신산업분야 중학생 직업체험 프로그램 신청</h2>", unsafe_allow_html=True)
 
 st.markdown("""
@@ -174,49 +173,58 @@ row2_col1, row2_col2, row2_col3 = st.columns(3)
 with row2_col1:
     school_input = st.text_input("중학교 (예: OO중)")
 with row2_col2:
-    grade_input = st.selectbox("학년", ["1학년", "2학년", "3학년"])
+    # 🔴 학년도 기본값을 비워서 직접 선택하게 만듭니다.
+    grade_input = st.selectbox("학년", ["1학년", "2학년", "3학년"], index=None, placeholder="선택하세요")
 with row2_col3:
     class_input = st.text_input("반 (숫자만 입력)")
 
 st.markdown("---")
 
 # =========================================================
-# 2단계: 체험 프로그램 선택
+# 2단계: 체험 프로그램 선택 (🔴 순차적 열림 적용)
 # =========================================================
 st.subheader("2. 체험 프로그램 선택")
 
-selected_date = st.selectbox("날짜 선택", list(SCHEDULE.keys()))
-available_schools = list(SCHEDULE[selected_date].keys())
-selected_school = st.selectbox("체험할 고등학교 선택", available_schools)
-
-cached_df = load_data_cached()
-raw_programs_data = SCHEDULE[selected_date][selected_school]
-
-display_options = []
+# 에러 방지를 위한 초기값 세팅
+selected_school = None
+selected_display = None
 display_map = {} 
 limit_map = {}
 
-for item in raw_programs_data:
-    prog_name = item["name"]   
-    prog_limit = item["limit"] 
-    
-    current_count = count_in_dataframe(cached_df, selected_date, selected_school, prog_name)
-    
-    if current_count >= (prog_limit + RESERVE_LIMIT):
-        display_text = f"🚫 [마감] {prog_name} (정원 및 예비 마감)"
-    elif current_count >= prog_limit:
-        res_num = current_count - prog_limit + 1
-        display_text = f"⚠️ [예비신청 가능] {prog_name} (현재 예비 {res_num}/{RESERVE_LIMIT}번)"
-    else:
-        display_text = f"✅ [정원신청 가능] {prog_name} (신청현황: {current_count}/{prog_limit}명)"
-    
-    display_options.append(display_text)
-    display_map[display_text] = prog_name
-    limit_map[prog_name] = prog_limit 
+# 1. 날짜 먼저 선택 (기본값 비우기)
+selected_date = st.selectbox("날짜 선택", list(SCHEDULE.keys()), index=None, placeholder="📅 날짜를 먼저 선택하세요")
 
-selected_display = st.selectbox("프로그램 선택", display_options)
-real_program_name = display_map[selected_display]
-current_limit = limit_map[real_program_name]
+if selected_date:
+    available_schools = list(SCHEDULE[selected_date].keys())
+    # 2. 날짜를 선택해야 고등학교 선택창 등장
+    selected_school = st.selectbox("체험할 고등학교 선택", available_schools, index=None, placeholder="🏫 체험할 고등학교를 선택하세요")
+
+    if selected_school:
+        cached_df = load_data_cached()
+        raw_programs_data = SCHEDULE[selected_date][selected_school]
+
+        display_options = []
+
+        for item in raw_programs_data:
+            prog_name = item["name"]   
+            prog_limit = item["limit"] 
+            
+            current_count = count_in_dataframe(cached_df, selected_date, selected_school, prog_name)
+            
+            if current_count >= (prog_limit + RESERVE_LIMIT):
+                display_text = f"🚫 [마감] {prog_name} (정원 및 예비 마감)"
+            elif current_count >= prog_limit:
+                res_num = current_count - prog_limit + 1
+                display_text = f"⚠️ [예비신청 가능] {prog_name} (현재 예비 {res_num}/{RESERVE_LIMIT}번)"
+            else:
+                display_text = f"✅ [정원신청 가능] {prog_name} (신청현황: {current_count}/{prog_limit}명)"
+            
+            display_options.append(display_text)
+            display_map[display_text] = prog_name
+            limit_map[prog_name] = prog_limit 
+
+        # 3. 고등학교를 선택해야 프로그램 선택창 등장
+        selected_display = st.selectbox("프로그램 선택", display_options, index=None, placeholder="💡 신청할 프로그램을 선택하세요")
 
 st.markdown("---")
 
@@ -225,17 +233,23 @@ st.markdown("---")
 # =========================================================
 if st.button("🚀 신청하기", use_container_width=True, type="primary"):
     
-    if not name_input or not phone_input or not school_input or not class_input:
-        st.error("❌ 학생 정보를 모두 입력해주세요.")
+    # 🔴 빈칸이 있는지 더 꼼꼼하게 검사합니다.
+    if not name_input or not phone_input or not school_input or not class_input or not grade_input:
+        st.error("❌ 학생 정보를 빈칸 없이 모두 입력/선택해주세요.")
+    elif not selected_date or not selected_school or not selected_display:
+        st.error("❌ 날짜, 고등학교, 프로그램을 모두 선택해주세요.")
     elif not phone_input.isdigit():
         st.warning("연락처에는 숫자만 입력해주세요.")
     elif len(phone_input) != 11:
         st.warning("연락처 11자리를 모두 입력해주세요.")
     elif not phone_input.startswith("010"):
         st.warning("연락처는 010으로 시작해야 합니다.")
-    elif "[완전 마감]" in selected_display:
+    elif "[완전 마감]" in selected_display or "[마감]" in selected_display:
         st.error("❌ 이미 예비 인원까지 모두 마감되었습니다.")
     else:
+        # 정상적으로 모두 입력되었을 때만 처리
+        real_program_name = display_map[selected_display]
+        current_limit = limit_map[real_program_name]
         formatted_phone = format_phone_number(phone_input)
         
         fresh_df = load_data_fresh() 
