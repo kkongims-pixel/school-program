@@ -25,45 +25,45 @@ except Exception as e:
     st.stop()
 
 # --------------------------------------------------------------------------
-# 2. 프로그램 일정 및 정원 설정
+# 2. 프로그램 일정 및 정원 설정 (모든 프로그램 정원 10명으로 통일!)
 # --------------------------------------------------------------------------
-RESERVE_LIMIT = 5  # 예비 인원 5명 설정 (추가된 부분)
+RESERVE_LIMIT = 5  # 예비 인원 5명
 
 SCHEDULE = {
     "2월 1일": {
         "자연과학고": [
-            {"name": "프로그램1 (플라워)", "limit": 12},
-            {"name": "프로그램2 (제과)", "limit": 12},
-            {"name": "프로그램3 (펫푸드)", "limit": 12},
+            {"name": "프로그램1 (플라워)", "limit": 10},
+            {"name": "프로그램2 (제과)", "limit": 10},
+            {"name": "프로그램3 (펫푸드)", "limit": 10},
             {"name": "프로그램4 (조리)", "limit": 10}
         ],
         "전남공고": [
-            {"name": "프로그램1 (AI 드론)", "limit": 25}, 
-            {"name": "프로그램2 (AI 목공)", "limit": 15},     
-            {"name": "프로그램3 (디퓨저)", "limit": 20} 
+            {"name": "프로그램1 (AI 드론)", "limit": 10}, 
+            {"name": "프로그램2 (AI 목공)", "limit": 10},     
+            {"name": "프로그램3 (디퓨저)", "limit": 10} 
         ],
         "전자공고": [
-            {"name": "프로그램1 (미래 자동차)", "limit": 30},     
-            {"name": "프로그램2 (VR 체험)", "limit": 20},
-            {"name": "프로그램3 (자율주행)", "limit": 20}
+            {"name": "프로그램1 (미래 자동차)", "limit": 10},     
+            {"name": "프로그램2 (VR 체험)", "limit": 10},
+            {"name": "프로그램3 (자율주행)", "limit": 10}
         ],
     },
     "2월 2일": {
         "자연과학고": [
-            {"name": "프로그램1 (플라워)", "limit": 12},
-            {"name": "프로그램2 (제과)", "limit": 12},
-            {"name": "프로그램3 (펫푸드)", "limit": 12},
+            {"name": "프로그램1 (플라워)", "limit": 10},
+            {"name": "프로그램2 (제과)", "limit": 10},
+            {"name": "프로그램3 (펫푸드)", "limit": 10},
             {"name": "프로그램4 (조리)", "limit": 10}
         ],
         "전남공고": [
-            {"name": "프로그램1 (AI 드론)", "limit": 25}, 
-            {"name": "프로그램2 (AI 목공)", "limit": 15},     
-            {"name": "프로그램3 (디퓨저)", "limit": 20} 
+            {"name": "프로그램1 (AI 드론)", "limit": 10}, 
+            {"name": "프로그램2 (AI 목공)", "limit": 10},     
+            {"name": "프로그램3 (디퓨저)", "limit": 10} 
         ],
         "전자공고": [
-            {"name": "프로그램1 (미래 자동차)", "limit": 30},     
-            {"name": "프로그램2 (VR 체험)", "limit": 20},
-            {"name": "프로그램3 (자율주행)", "limit": 20}
+            {"name": "프로그램1 (미래 자동차)", "limit": 10},     
+            {"name": "프로그램2 (VR 체험)", "limit": 10},
+            {"name": "프로그램3 (자율주행)", "limit": 10}
         ],
     }
 }
@@ -71,12 +71,10 @@ SCHEDULE = {
 COLUMNS = ["신청일시", "이름", "연락처", "소속학교", "학년", "반", "체험날짜", "학교", "프로그램"]
 
 # --------------------------------------------------------------------------
-# 3. 데이터 처리 함수 (속도 최적화 적용!)
+# 3. 데이터 처리 함수
 # --------------------------------------------------------------------------
-# (1) [속도 UP] 화면 표시용 데이터 로더 (5초 동안 기억함)
 @st.cache_data(ttl=5) 
 def load_data_cached():
-    """UI 표시용: 구글 시트 데이터를 5초간 캐싱하여 속도 향상"""
     try:
         data = sheet.get_all_values()
         if len(data) <= 1: 
@@ -85,9 +83,7 @@ def load_data_cached():
     except:
         return pd.DataFrame(columns=COLUMNS)
 
-# (2) [안전 제일] 저장 전 확인용 데이터 로더 (캐시 안 씀, 무조건 실시간)
 def load_data_fresh():
-    """최종 신청용: 무조건 최신 데이터를 가져옴"""
     try:
         data = sheet.get_all_values()
         if len(data) <= 1: 
@@ -98,10 +94,8 @@ def load_data_fresh():
 
 def save_data(new_entry_list):
     sheet.append_row(new_entry_list)
-    # 저장 후 캐시 비우기 (다음 사람이 바로 반영된거 볼 수 있게)
     load_data_cached.clear()
 
-# [수정됨] 데이터프레임(df)을 밖에서 받아오도록 변경하여 반복 호출 제거
 def count_in_dataframe(df, date, school, program_name):
     if df.empty: return 0
     filtered = df[
@@ -152,9 +146,9 @@ st.markdown("""
 1. **날짜를 먼저 선택**해야 해당 일자의 학교 및 프로그램 목록이 나타납니다.
 2. **같은 날짜**에는 **1개의 프로그램**만 신청할 수 있습니다.
 3. 이전에 신청했던 프로그램과 **동일한 프로그램은 중복 신청이 불가능**합니다.
-4. 각 프로그램은 **설정된 정원 10명(선착순)** 마감입니다. 
-5. 취소된 인원이 생길 경우를 위해 예비로 5명 접수 받습니다.
-6. 본인 확인을 위해 **이름과 연락처를 정확하게** 입력해주세요.
+4. 각 프로그램은 **설정된 정원 10명(선착순)** 마감입니다.
+5. 취소된 인원이 생길 경우를 위해 **예비 5명 추가** 신청 받습니다.
+5. 본인 확인을 위해 **이름과 연락처를 정확하게** 입력해주세요.
 """)
 
 st.info("""
@@ -186,47 +180,40 @@ with row2_col3:
 st.markdown("---")
 
 # =========================================================
-# 2단계: 체험 프로그램 선택 (⚡예비 인원 기능 추가됨)
+# 2단계: 체험 프로그램 선택 (⚡인원 표시 명확하게 변경)
 # =========================================================
 st.subheader("2. 체험 프로그램 선택")
 
-# 1. 날짜 및 학교 선택
 selected_date = st.selectbox("날짜 선택", list(SCHEDULE.keys()))
 available_schools = list(SCHEDULE[selected_date].keys())
 selected_school = st.selectbox("체험할 고등학교 선택", available_schools)
 
-# 2. 데이터 가져오기 (여기서 딱 한 번만 가져옵니다! -> 딜레이 해결)
-#    UI 표시용이므로 캐시된 데이터를 사용합니다.
 cached_df = load_data_cached()
-
 raw_programs_data = SCHEDULE[selected_date][selected_school]
 
 display_options = []
 display_map = {} 
 limit_map = {}
 
-# 3. 가져온 데이터(cached_df)로 숫자 세기 (구글 접속 안 함 -> 엄청 빠름)
 for item in raw_programs_data:
     prog_name = item["name"]   
     prog_limit = item["limit"] 
     
-    # 메모리에 있는 데이터로 계산
     current_count = count_in_dataframe(cached_df, selected_date, selected_school, prog_name)
     
-    # [수정] 예비 인원을 포함한 마감 로직 처리
+    # 🔴 [화면 표시 문구 수정] 학생이 직관적으로 몇 명 남았는지 알 수 있게 변경
     if current_count >= (prog_limit + RESERVE_LIMIT):
-        display_text = f"🚫 [마감] {prog_name}"
+        display_text = f"🚫 [완전 마감] {prog_name} (정원 및 예비 마감)"
     elif current_count >= prog_limit:
         res_num = current_count - prog_limit + 1
-        display_text = f"⚠️ [예비신청] {prog_name} (예비 {res_num}번)"
+        display_text = f"⚠️ [예비신청 가능] {prog_name} (현재 예비 {res_num}/{RESERVE_LIMIT}번)"
     else:
-        display_text = f"{prog_name} (신청: {current_count}/{prog_limit}명)"
+        display_text = f"✅ [정원신청 가능] {prog_name} (신청현황: {current_count}/{prog_limit}명)"
     
     display_options.append(display_text)
     display_map[display_text] = prog_name
     limit_map[prog_name] = prog_limit 
 
-# 프로그램 선택 박스
 selected_display = st.selectbox("프로그램 선택", display_options)
 real_program_name = display_map[selected_display]
 current_limit = limit_map[real_program_name]
@@ -238,7 +225,6 @@ st.markdown("---")
 # =========================================================
 if st.button("✅ 위 내용으로 신청하기", use_container_width=True):
     
-    # 1. 입력값 검증
     if not name_input or not phone_input or not school_input or not class_input:
         st.error("❌ 학생 정보를 모두 입력해주세요.")
     elif not phone_input.isdigit():
@@ -247,21 +233,18 @@ if st.button("✅ 위 내용으로 신청하기", use_container_width=True):
         st.warning("연락처 11자리를 모두 입력해주세요.")
     elif not phone_input.startswith("010"):
         st.warning("연락처는 010으로 시작해야 합니다.")
-    elif "[마감]" in selected_display:
+    elif "[완전 마감]" in selected_display:
         st.error("❌ 이미 예비 인원까지 모두 마감되었습니다.")
     else:
         formatted_phone = format_phone_number(phone_input)
         
-        # 4. [중요] 최종 마감 재확인 (여기서는 실시간 데이터 사용!)
         fresh_df = load_data_fresh() 
         final_count = count_in_dataframe(fresh_df, selected_date, selected_school, real_program_name)
         
-        # 예비 정원(RESERVE_LIMIT)까지 초과되었는지 확인
         if final_count >= (current_limit + RESERVE_LIMIT):
             st.error(f"😭 아쉽지만 예비 인원까지 모두 마감되었습니다.")
-            load_data_cached.clear() # 캐시 초기화 (마감 정보 갱신)
+            load_data_cached.clear() 
         else:
-            # 5. 중복 신청 확인 (실시간 데이터 기준)
             user_history = get_user_history(fresh_df, name_input, formatted_phone)
             
             date_dup = pd.DataFrame()
@@ -290,16 +273,8 @@ if st.button("✅ 위 내용으로 신청하기", use_container_width=True):
                 
                 save_data(new_entry_list)
                 
-                # [수정] 정원 내 접수와 예비 접수 시 안내 문구 다르게 표시
                 if final_count < current_limit:
                     st.success(f"🎉 신청이 완료되었습니다! ({real_program_name})")
                     st.balloons()
                 else:
                     reserve_no = final_count - current_limit + 1
-                    st.warning(f"📝 정원이 초과되어 [예비 {reserve_no}번]으로 등록되었습니다.")
-
-# 관리자 메뉴
-with st.expander("관리자 메뉴"):
-    st.write("데이터는 구글 스프레드시트에 실시간으로 저장되고 있습니다.")
-    if 'SHEET_URL' in locals():
-        st.link_button("📊 구글 시트로 이동하여 명단 확인하기", SHEET_URL)
