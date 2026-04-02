@@ -25,7 +25,7 @@ except Exception as e:
     st.stop()
 
 # --------------------------------------------------------------------------
-# 2. 프로그램 일정 및 정원 설정 
+# 2. 프로그램 일정 및 정원 설정
 # --------------------------------------------------------------------------
 RESERVE_LIMIT = 5  # 예비 인원 5명
 
@@ -139,7 +139,8 @@ if now_kst < open_time:
 # --------------------------------------------------------------------------
 # 5. 메인 화면 구성
 # --------------------------------------------------------------------------
-st.title("🏫 2026년 신산업분야 중학생 직업체험 프로그램 신청")
+# 🔴 [수정됨] 기존 st.title()을 지우고, 글자 크기를 22px로 줄인 HTML 코드로 변경했습니다!
+st.markdown("<h2 style='font-size: 22px; font-weight: bold; word-break: keep-all; margin-bottom: 20px;'>🏫 2026년 신산업분야 중학생 직업체험 프로그램 신청</h2>", unsafe_allow_html=True)
 
 st.markdown("""
 ### 📢 [신청 전 유의사항]
@@ -264,7 +265,6 @@ if st.button("✅ 위 내용으로 신청하기", use_container_width=True):
                     reserve_no = final_count - current_limit + 1
                     status_text = f"예비 {reserve_no}" 
 
-                # 🔴 [시간 수정됨] datetime.now(kst)로 한국 시간 강제 적용!
                 new_entry_list = [
                     datetime.now(kst).strftime("%Y-%m-%d %H:%M:%S"),
                     name_input,
