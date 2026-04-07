@@ -115,22 +115,24 @@ def format_phone_number(phone):
     return phone
 
 # --------------------------------------------------------------------------
-# 4. [오픈런] 시간 통제 설정
+# 4. [오픈런] 시간 통제 설정 (🔴 시간 오류 완벽 수정됨!)
 # --------------------------------------------------------------------------
 OPEN_YEAR = 2026
 OPEN_MONTH = 4
 OPEN_DAY = 7
 OPEN_HOUR = 11
-OPEN_MINUTE = 20
+OPEN_MINUTE = 30
 
 kst = pytz.timezone('Asia/Seoul')
 now_kst = datetime.now(kst)
-open_time = datetime(OPEN_YEAR, OPEN_MONTH, OPEN_DAY, OPEN_HOUR, OPEN_MINUTE, 0, tzinfo=kst)
+
+# 👇 tzinfo 대신 localize를 사용하여 한국 시간과 완벽하게 일치시킵니다.
+open_time = kst.localize(datetime(OPEN_YEAR, OPEN_MONTH, OPEN_DAY, OPEN_HOUR, OPEN_MINUTE))
 
 if now_kst < open_time:
     st.title("🚧 신청 기간이 아닙니다")
     st.error(f"📢 신청 시작 시간: {open_time.strftime('%Y년 %m월 %d일 %H시 %M분')}")
-    st.info(f"🕰 현재 시간: {now_kst.strftime('%H시 %M분 %S초')}")
+    st.info(f"🕰 현재 한국 시간: {now_kst.strftime('%Y년 %m월 %d일 %H시 %M분 %S초')}")
     st.write("시간이 되면 아래 [새로고침] 버튼을 눌러주세요.")
     if st.button("🔄 새로고침 (시간 확인)"):
         st.rerun()
@@ -143,7 +145,7 @@ st.markdown("<h2 style='font-size: 30px; font-weight: bold; word-break: keep-all
 
 st.markdown("""
 ### 📢 [신청 전 유의사항]
-1.  본인 확인을 위해 **이름과 연락처를 정확하게** 입력해주세요.
+1. 본인 확인을 위해 **이름과 연락처를 정확하게** 입력해주세요.
 2. **날짜를 먼저 선택**해야 해당 일자의 학교 및 프로그램 목록이 나타납니다.
 3. **같은 날짜**에는 **1개의 프로그램**만 신청할 수 있습니다.
 4. 이전에 신청했던 프로그램과 **동일한 프로그램은 중복 신청이 불가능**합니다.
@@ -180,7 +182,7 @@ with row2_col3:
 st.markdown("---")
 
 # =========================================================
-# 2단계: 체험 프로그램 선택 (🔴 세 항목 모두 기본적으로 화면에 보임!)
+# 2단계: 체험 프로그램 선택
 # =========================================================
 st.subheader("2. 체험 프로그램 선택")
 
