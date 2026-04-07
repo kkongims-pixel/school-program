@@ -115,18 +115,16 @@ def format_phone_number(phone):
     return phone
 
 # --------------------------------------------------------------------------
-# 4. [오픈런] 시간 통제 설정 (🔴 시간 오류 완벽 수정됨!)
+# 4. [오픈런] 시간 통제 설정
 # --------------------------------------------------------------------------
 OPEN_YEAR = 2026
 OPEN_MONTH = 4
 OPEN_DAY = 7
 OPEN_HOUR = 11
-OPEN_MINUTE = 30
+OPEN_MINUTE = 20
 
 kst = pytz.timezone('Asia/Seoul')
 now_kst = datetime.now(kst)
-
-# 👇 tzinfo 대신 localize를 사용하여 한국 시간과 완벽하게 일치시킵니다.
 open_time = kst.localize(datetime(OPEN_YEAR, OPEN_MONTH, OPEN_DAY, OPEN_HOUR, OPEN_MINUTE))
 
 if now_kst < open_time:
@@ -186,19 +184,15 @@ st.markdown("---")
 # =========================================================
 st.subheader("2. 체험 프로그램 선택")
 
-# 1. 날짜 선택창은 항상 보임
 selected_date = st.selectbox("날짜 선택", list(SCHEDULE.keys()), index=None, placeholder="📅 날짜를 선택하세요")
 
-# 2. 고등학교 선택창도 항상 보임 (날짜가 선택 안됐으면 빈 목록 제공)
 available_schools = list(SCHEDULE[selected_date].keys()) if selected_date else []
 selected_school = st.selectbox("체험할 고등학교 선택", available_schools, index=None, placeholder="🏫 체험할 고등학교를 선택하세요")
 
-# 3. 프로그램 선택창도 항상 보임
 display_options = []
 display_map = {} 
 limit_map = {}
 
-# 날짜와 학교가 모두 선택되었을 때만 프로그램 목록을 계산해서 넣음
 if selected_date and selected_school:
     cached_df = load_data_cached()
     raw_programs_data = SCHEDULE[selected_date][selected_school]
@@ -226,26 +220,39 @@ selected_display = st.selectbox("프로그램 선택", display_options, index=No
 st.markdown("---")
 
 # =========================================================
-# 3단계: 최종 신청 버튼
+# 3단계: 최종 신청 버튼 (🔴 에러 메시지 상세화 및 공백 제거 처리)
 # =========================================================
 if st.button("🚀 신청하기", use_container_width=True, type="primary"):
     
-    if not name_input or not phone_input or not school_input or not class_input or not grade_input:
-        st.error("❌ 학생 정보를 빈칸 없이 모두 입력/선택해주세요.")
+    # 빈칸 여부를 하나씩 콕 찝어서 알려줍니다!
+    if not name_input or not name_input.strip():
+        st.error("❌ [학생 정보] '이름' 칸이 비어있습니다. 이름을 입력해주세요.")
+    elif not phone_input or not phone_input.strip():
+        st.error("❌ [학생 정보] '연락처' 칸이 비어있습니다. 연락처를 입력해주세요.")
+    elif not school_input or not school_input.strip():
+        st.error("❌ [학생 정보] '중학교' 칸이 비어있습니다. 학교명을 입력해주세요.")
+    elif not grade_input:
+        st.error("❌ [학생 정보] '학년'을 선택해주세요. (현재 '선택하세요' 상태입니다)")
+    elif not class_input or not class_input.strip():
+        st.error("❌ [학생 정보] '반' 칸이 비어있습니다. 몇 반인지 입력해주세요.")
     elif not selected_date or not selected_school or not selected_display:
-        st.error("❌ 날짜, 고등학교, 프로그램을 모두 정확하게 선택해주세요.")
+        st.error("❌ [프로그램 선택] 날짜, 고등학교, 프로그램을 모두 정확하게 골라주세요.")
     elif not phone_input.isdigit():
-        st.warning("연락처에는 숫자만 입력해주세요.")
+        st.warning("연락처에는 하이픈(-) 없이 숫자만 입력해주세요.")
     elif len(phone_input) != 11:
         st.warning("연락처 11자리를 모두 입력해주세요.")
     elif not phone_input.startswith("010"):
         st.warning("연락처는 010으로 시작해야 합니다.")
-    elif "[완전 마감]" in selected_display or "[마감]" in selected_display:
+    elif "[마감]" in selected_display:
         st.error("❌ 이미 예비 인원까지 모두 마감되었습니다.")
     else:
+        # 정상 처리 로직 (공백을 깨끗하게 정리해서 저장합니다)
         real_program_name = display_map[selected_display]
         current_limit = limit_map[real_program_name]
-        formatted_phone = format_phone_number(phone_input)
+        formatted_phone = format_phone_number(phone_input.strip())
+        clean_name = name_input.strip()
+        clean_school = school_input.strip()
+        clean_class = class_input.strip()
         
         fresh_df = load_data_fresh() 
         final_count = count_in_dataframe(fresh_df, selected_date, selected_school, real_program_name)
@@ -254,7 +261,7 @@ if st.button("🚀 신청하기", use_container_width=True, type="primary"):
             st.error(f"😭 아쉽지만 예비 인원까지 모두 마감되었습니다.")
             load_data_cached.clear() 
         else:
-            user_history = get_user_history(fresh_df, name_input, formatted_phone)
+            user_history = get_user_history(fresh_df, clean_name, formatted_phone)
             
             date_dup = pd.DataFrame()
             prog_dup = pd.DataFrame()
@@ -276,11 +283,11 @@ if st.button("🚀 신청하기", use_container_width=True, type="primary"):
 
                 new_entry_list = [
                     datetime.now(kst).strftime("%Y-%m-%d %H:%M:%S"),
-                    name_input,
+                    clean_name,
                     formatted_phone,
-                    school_input,
+                    clean_school,
                     grade_input,
-                    class_input,
+                    clean_class,
                     selected_date,
                     selected_school,
                     real_program_name,
