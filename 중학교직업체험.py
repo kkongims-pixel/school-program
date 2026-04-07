@@ -117,11 +117,11 @@ def format_phone_number(phone):
 # --------------------------------------------------------------------------
 # 4. [오픈런] 시간 통제 설정
 # --------------------------------------------------------------------------
-OPEN_YEAR = 2024
-OPEN_MONTH = 1
-OPEN_DAY = 1
-OPEN_HOUR = 9
-OPEN_MINUTE = 0
+OPEN_YEAR = 2026
+OPEN_MONTH = 4
+OPEN_DAY = 7
+OPEN_HOUR = 11
+OPEN_MINUTE = 20
 
 kst = pytz.timezone('Asia/Seoul')
 now_kst = datetime.now(kst)
@@ -143,12 +143,12 @@ st.markdown("<h2 style='font-size: 30px; font-weight: bold; word-break: keep-all
 
 st.markdown("""
 ### 📢 [신청 전 유의사항]
-1. **날짜를 먼저 선택**해야 해당 일자의 학교 및 프로그램 목록이 나타납니다.
-2. **같은 날짜**에는 **1개의 프로그램**만 신청할 수 있습니다.
-3. 이전에 신청했던 프로그램과 **동일한 프로그램은 중복 신청이 불가능**합니다.
-4. 각 프로그램은 **설정된 정원(선착순)** 마감입니다.
-5. **예비 신청자**는 정원 내 취소자가 발생할 경우 **순차적**으로 연락드립니다.
-6. 본인 확인을 위해 **이름과 연락처를 정확하게** 입력해주세요.
+1.  본인 확인을 위해 **이름과 연락처를 정확하게** 입력해주세요.
+2. **날짜를 먼저 선택**해야 해당 일자의 학교 및 프로그램 목록이 나타납니다.
+3. **같은 날짜**에는 **1개의 프로그램**만 신청할 수 있습니다.
+4. 이전에 신청했던 프로그램과 **동일한 프로그램은 중복 신청이 불가능**합니다.
+5. 각 프로그램은 **설정된 정원(선착순)** 마감입니다.
+6. **예비 신청자**는 정원 내 취소자가 발생할 경우 **순차적**으로 연락드립니다.
 """)
 
 st.info("""
@@ -185,7 +185,7 @@ st.markdown("---")
 st.subheader("2. 체험 프로그램 선택")
 
 # 1. 날짜 선택창은 항상 보임
-selected_date = st.selectbox("날짜 선택", list(SCHEDULE.keys()), index=None, placeholder="📅 날짜를 먼저 선택하세요")
+selected_date = st.selectbox("날짜 선택", list(SCHEDULE.keys()), index=None, placeholder="📅 날짜를 선택하세요")
 
 # 2. 고등학교 선택창도 항상 보임 (날짜가 선택 안됐으면 빈 목록 제공)
 available_schools = list(SCHEDULE[selected_date].keys()) if selected_date else []
