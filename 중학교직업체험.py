@@ -146,15 +146,10 @@ st.info("""
 
 st.markdown("---")
 
-# 화면 상단 알림 및 풍선 표시
-if 'success_msg' in st.session_state:
-    st.success(st.session_state['success_msg'])
+# 풍선 효과 애니메이션 (상단 메시지는 없애고 풍선만 띄웁니다)
+if st.session_state.get('show_balloons', False):
     st.balloons()
-    del st.session_state['success_msg']
-
-if 'warning_msg' in st.session_state:
-    st.warning(st.session_state['warning_msg'])
-    del st.session_state['warning_msg']
+    st.session_state['show_balloons'] = False
 
 # =========================================================
 # 1단계: 학생 정보 입력 
@@ -218,12 +213,12 @@ selected_display = st.selectbox("프로그램 선택", display_options, index=No
 st.markdown("---")
 
 # =========================================================
-# 3단계: 최종 신청 버튼 (🔴 버튼 텍스트 변경 로직 추가)
+# 3단계: 최종 신청 버튼 (🔴 눈에 확 띄는 노란색 배경 박스 적용)
 # =========================================================
-# 만약 방금 신청을 성공했다면, 완료 메시지로 버튼을 바꿔서 보여줍니다.
+# 방금 신청을 성공했다면, 노란색 배경의 크고 예쁜 박스를 띄워줍니다.
 if st.session_state.get('show_complete_msg', False):
-    st.button(st.session_state.get('complete_msg_text', "✅ 신청이 완료되었습니다."), disabled=True, use_container_width=True)
-    # 한 번 보여주고 나면 상태를 해제하여, 다음 입력 시 원래의 '신청하기' 버튼으로 돌아가게 만듭니다.
+    st.markdown(st.session_state['complete_msg_html'], unsafe_allow_html=True)
+    # 한 번 보여주고 나면 상태를 해제하여, 다음 입력 시 원래의 버튼으로 돌아가게 만듭니다.
     st.session_state['show_complete_msg'] = False
 
 else:
@@ -300,16 +295,24 @@ else:
                     
                     save_data(new_entry_list)
                     
-                    # 🔴 성공 시 표시할 메시지를 저장하고 화면을 초기화합니다.
+                    # 🔴 성공 시 눈에 확 띄는 커스텀 디자인(노란 배경)을 생성합니다.
                     if final_count < current_limit:
-                        st.session_state['success_msg'] = f"🎉 신청이 완료되었습니다! ({real_program_name})"
-                        st.session_state['complete_msg_text'] = "✅ 신청이 완료되었습니다."
+                        st.session_state['show_balloons'] = True
+                        st.session_state['complete_msg_html'] = f"""
+                        <div style="background-color: #FFE066; padding: 20px; border-radius: 10px; text-align: center; color: #333; margin-bottom: 20px; border: 2px solid #F4C430;">
+                            <h3 style="margin: 0; font-weight: bold; color: #000;">✅ 신청이 완료되었습니다!</h3>
+                            <p style="margin: 10px 0 0 0; font-size: 16px;">({real_program_name})</p>
+                        </div>
+                        """
                     else:
                         reserve_no = final_count - current_limit + 1
-                        st.session_state['warning_msg'] = f"예비 {reserve_no}번으로 접수되었습니다. ({real_program_name})"
-                        st.session_state['complete_msg_text'] = f"⚠️ 예비 {reserve_no}번으로 접수되었습니다."
+                        st.session_state['complete_msg_html'] = f"""
+                        <div style="background-color: #FFE066; padding: 20px; border-radius: 10px; text-align: center; color: #333; margin-bottom: 20px; border: 2px solid #F4C430;">
+                            <h3 style="margin: 0; font-weight: bold; color: #000;">⚠️ 예비 {reserve_no}번으로 접수되었습니다.</h3>
+                            <p style="margin: 10px 0 0 0; font-size: 16px;">({real_program_name})</p>
+                        </div>
+                        """
                     
-                    # 버튼을 변경하라는 신호를 켭니다.
                     st.session_state['show_complete_msg'] = True
                     
                     # 입력된 모든 값을 지워줍니다.
