@@ -30,41 +30,62 @@ except Exception as e:
 RESERVE_LIMIT = 2  # 예비 인원 2명
 
 SCHEDULE = {
-    "2월 1일": {
-        "자연과학고": [
-            {"name": "프로그램1 (플라워)", "limit": 10},
-            {"name": "프로그램2 (제과)", "limit": 10},
-            {"name": "프로그램3 (펫푸드)", "limit": 10},
-            {"name": "프로그램4 (조리)", "limit": 10}
-        ],
-        "전남공고": [
-            {"name": "프로그램1 (AI 드론)", "limit": 10}, 
-            {"name": "프로그램2 (AI 목공)", "limit": 10},     
-            {"name": "프로그램3 (디퓨저)", "limit": 10} 
-        ],
-        "전자공고": [
+    "6월 17일": {
+        "스마트 캠퍼스import streamlit as st
+import pandas as pd
+import gspread
+from google.oauth2.service_account import Credentials
+import json
+import re
+from datetime import datetime
+import pytz
+
+# --------------------------------------------------------------------------
+# 1. 설정 및 구글 시트 연결
+# --------------------------------------------------------------------------
+st.set_page_config(page_title="체험 프로그램 신청", page_icon="🏫")
+
+# Streamlit Secrets에서 정보 가져오기
+try:
+    SHEET_URL = st.secrets["gsheets"]["sheet_url"]
+    json_creds = json.loads(st.secrets["gsheets"]["service_account"])
+    scope = ["https://www.googleapis.com/auth/spreadsheets"]
+    creds = Credentials.from_service_account_info(json_creds, scopes=scope)
+    client = gspread.authorize(creds)
+    sheet = client.open_by_url(SHEET_URL).sheet1
+except Exception as e:
+    st.error(f"구글 시트 연결 오류: {e}")
+    st.stop()
+
+# --------------------------------------------------------------------------
+# 2. 프로그램 일정 및 정원 설정
+# --------------------------------------------------------------------------
+RESERVE_LIMIT = 2  # 예비 인원 2명
+
+SCHEDULE = {
+    "6월 13일(토요일)": {
+            "전자공고": [
             {"name": "프로그램1 (미래 자동차)", "limit": 10},     
-            {"name": "프로그램2 (VR 체험)", "limit": 10},
-            {"name": "프로그램3 (자율주행)", "limit": 10}
+            {"name": "프로그램2 (자율주행 자동차)", "limit": 10},
+            {"name": "프로그램3 (모빌리티 랩)", "limit": 10}
         ],
     },
-    "2월 2일": {
+    "6월 17일(수요일)": {
+        "스마트 캠퍼스": [
+            {"name": "프로그램 (스마트시티 크리에이터)", "limit": 20}
+        ],
+    },
+    "7월 11일(토요일)": {
         "자연과학고": [
-            {"name": "프로그램1 (플라워)", "limit": 10},
-            {"name": "프로그램2 (제과)", "limit": 10},
-            {"name": "프로그램3 (펫푸드)", "limit": 10},
-            {"name": "프로그램4 (조리)", "limit": 10}
+            {"name": "프로그램1 (AI 플로리스트)", "limit": 10},
+            {"name": "프로그램2 (미래의 베이커리공작소)", "limit": 10},
+            {"name": "프로그램3 (AI 반려동물 영양설계사)", "limit": 10},
+            {"name": "프로그램4 (K-디저트 셰프)", "limit": 10}
         ],
         "전남공고": [
-            {"name": "프로그램1 (AI 드론)", "limit": 10}, 
-            {"name": "프로그램2 (AI 목공)", "limit": 10},     
-            {"name": "프로그램3 (디퓨저)", "limit": 10} 
-        ],
-        "전자공고": [
-            {"name": "프로그램1 (미래 자동차)", "limit": 10},     
-            {"name": "프로그램2 (VR 체험)", "limit": 10},
-            {"name": "프로그램3 (자율주행)", "limit": 10}
-        ],
+            {"name": "프로그램1 (첨단 드론 조종사)", "limit": 10}, 
+            {"name": "프로그램2 (스마트 가구 디자이너)", "limit": 10},     
+        ]
     }
 }
 
