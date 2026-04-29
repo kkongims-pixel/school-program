@@ -25,46 +25,13 @@ except Exception as e:
     st.stop()
 
 # --------------------------------------------------------------------------
-# 2. 프로그램 일정 및 정원 설정
-# --------------------------------------------------------------------------
-RESERVE_LIMIT = 2  # 예비 인원 2명
-
-SCHEDULE = {
-    "6월 17일": {
-        "스마트 캠퍼스import streamlit as st
-import pandas as pd
-import gspread
-from google.oauth2.service_account import Credentials
-import json
-import re
-from datetime import datetime
-import pytz
-
-# --------------------------------------------------------------------------
-# 1. 설정 및 구글 시트 연결
-# --------------------------------------------------------------------------
-st.set_page_config(page_title="체험 프로그램 신청", page_icon="🏫")
-
-# Streamlit Secrets에서 정보 가져오기
-try:
-    SHEET_URL = st.secrets["gsheets"]["sheet_url"]
-    json_creds = json.loads(st.secrets["gsheets"]["service_account"])
-    scope = ["https://www.googleapis.com/auth/spreadsheets"]
-    creds = Credentials.from_service_account_info(json_creds, scopes=scope)
-    client = gspread.authorize(creds)
-    sheet = client.open_by_url(SHEET_URL).sheet1
-except Exception as e:
-    st.error(f"구글 시트 연결 오류: {e}")
-    st.stop()
-
-# --------------------------------------------------------------------------
-# 2. 프로그램 일정 및 정원 설정
+# 2. 프로그램 일정 및 정원 설정 (🔴 새로운 일정으로 변경 완료!)
 # --------------------------------------------------------------------------
 RESERVE_LIMIT = 2  # 예비 인원 2명
 
 SCHEDULE = {
     "6월 13일(토요일)": {
-            "전자공고": [
+        "전자공고": [
             {"name": "프로그램1 (미래 자동차)", "limit": 10},     
             {"name": "프로그램2 (자율주행 자동차)", "limit": 10},
             {"name": "프로그램3 (모빌리티 랩)", "limit": 10}
@@ -179,36 +146,46 @@ st.info("""
 
 st.markdown("---")
 
+# 🔴 [추가됨] 초기화 후 성공 메시지를 띄워주는 구역
+if 'success_msg' in st.session_state:
+    st.success(st.session_state['success_msg'])
+    st.balloons()
+    del st.session_state['success_msg']
+
+if 'warning_msg' in st.session_state:
+    st.warning(st.session_state['warning_msg'])
+    del st.session_state['warning_msg']
+
 # =========================================================
-# 1단계: 학생 정보 입력
+# 1단계: 학생 정보 입력 (초기화를 위해 key 추가)
 # =========================================================
 st.subheader("1. 학생 정보 입력")
 
 row1_col1, row1_col2 = st.columns(2)
 with row1_col1:
-    name_input = st.text_input("이름 (예: 홍길동)")
+    name_input = st.text_input("이름 (예: 홍길동)", key="k_name")
 with row1_col2:
-    phone_input = st.text_input("연락처 (숫자만 입력)", max_chars=11)
+    phone_input = st.text_input("연락처 (숫자만 입력)", max_chars=11, key="k_phone")
 
 row2_col1, row2_col2, row2_col3 = st.columns(3)
 with row2_col1:
-    school_input = st.text_input("중학교 (예: OO중)")
+    school_input = st.text_input("중학교 (예: OO중)", key="k_school")
 with row2_col2:
-    grade_input = st.selectbox("학년", ["1학년", "2학년", "3학년"], index=None, placeholder="선택하세요")
+    grade_input = st.selectbox("학년", ["1학년", "2학년", "3학년"], index=None, placeholder="선택하세요", key="k_grade")
 with row2_col3:
-    class_input = st.text_input("반 (숫자만 입력)")
+    class_input = st.text_input("반 (숫자만 입력)", key="k_class")
 
 st.markdown("---")
 
 # =========================================================
-# 2단계: 체험 프로그램 선택
+# 2단계: 체험 프로그램 선택 (초기화를 위해 key 추가)
 # =========================================================
 st.subheader("2. 체험 프로그램 선택")
 
-selected_date = st.selectbox("날짜 선택", list(SCHEDULE.keys()), index=None, placeholder="📅 날짜를 선택하세요")
+selected_date = st.selectbox("날짜 선택", list(SCHEDULE.keys()), index=None, placeholder="📅 날짜를 선택하세요", key="k_date")
 
 available_schools = list(SCHEDULE[selected_date].keys()) if selected_date else []
-selected_school = st.selectbox("체험할 고등학교 선택", available_schools, index=None, placeholder="🏫 체험할 고등학교를 선택하세요")
+selected_school = st.selectbox("체험할 고등학교 선택", available_schools, index=None, placeholder="🏫 체험할 고등학교를 선택하세요", key="k_highschool")
 
 display_options = []
 display_map = {} 
@@ -236,16 +213,15 @@ if selected_date and selected_school:
         display_map[display_text] = prog_name
         limit_map[prog_name] = prog_limit 
 
-selected_display = st.selectbox("프로그램 선택", display_options, index=None, placeholder="💡 신청할 프로그램을 선택하세요")
+selected_display = st.selectbox("프로그램 선택", display_options, index=None, placeholder="💡 신청할 프로그램을 선택하세요", key="k_program")
 
 st.markdown("---")
 
 # =========================================================
-# 3단계: 최종 신청 버튼 (🔴 에러 메시지 상세화 및 공백 제거 처리)
+# 3단계: 최종 신청 버튼 
 # =========================================================
 if st.button("🚀 신청하기", use_container_width=True, type="primary"):
     
-    # 빈칸 여부를 하나씩 콕 찝어서 알려줍니다!
     if not name_input or not name_input.strip():
         st.error("❌ [학생 정보] '이름' 칸이 비어있습니다. 이름을 입력해주세요.")
     elif not phone_input or not phone_input.strip():
@@ -267,7 +243,6 @@ if st.button("🚀 신청하기", use_container_width=True, type="primary"):
     elif "[마감]" in selected_display:
         st.error("❌ 이미 예비 인원까지 모두 마감되었습니다.")
     else:
-        # 정상 처리 로직 (공백을 깨끗하게 정리해서 저장합니다)
         real_program_name = display_map[selected_display]
         current_limit = limit_map[real_program_name]
         formatted_phone = format_phone_number(phone_input.strip())
@@ -317,12 +292,20 @@ if st.button("🚀 신청하기", use_container_width=True, type="primary"):
                 
                 save_data(new_entry_list)
                 
+                # 🔴 성공 메시지 기억 및 입력칸 초기화 로직
                 if final_count < current_limit:
-                    st.success(f"🎉 신청이 완료되었습니다! ({real_program_name})")
-                    st.balloons()
+                    st.session_state['success_msg'] = f"🎉 신청이 완료되었습니다! ({real_program_name})"
                 else:
                     reserve_no = final_count - current_limit + 1
-                    st.warning(f"예비 {reserve_no}번으로 접수되었습니다.")
+                    st.session_state['warning_msg'] = f"예비 {reserve_no}번으로 접수되었습니다. ({real_program_name})"
+                
+                # 입력된 모든 값을 지워줍니다.
+                for key in ["k_name", "k_phone", "k_school", "k_grade", "k_class", "k_date", "k_highschool", "k_program"]:
+                    if key in st.session_state:
+                        del st.session_state[key]
+                        
+                # 화면 즉시 새로고침
+                st.rerun()
 
 with st.expander("관리자 메뉴"):
     st.write("데이터는 구글 스프레드시트에 실시간으로 저장되고 있습니다.")
