@@ -25,7 +25,7 @@ except Exception as e:
     st.stop()
 
 # --------------------------------------------------------------------------
-# 2. 프로그램 일정 및 정원 설정 (🔴 새로운 일정으로 변경 완료!)
+# 2. 프로그램 일정 및 정원 설정
 # --------------------------------------------------------------------------
 RESERVE_LIMIT = 2  # 예비 인원 2명
 
@@ -146,7 +146,7 @@ st.info("""
 
 st.markdown("---")
 
-# 🔴 [추가됨] 초기화 후 성공 메시지를 띄워주는 구역
+# 화면 상단 알림 및 풍선 표시
 if 'success_msg' in st.session_state:
     st.success(st.session_state['success_msg'])
     st.balloons()
@@ -157,7 +157,7 @@ if 'warning_msg' in st.session_state:
     del st.session_state['warning_msg']
 
 # =========================================================
-# 1단계: 학생 정보 입력 (초기화를 위해 key 추가)
+# 1단계: 학생 정보 입력 
 # =========================================================
 st.subheader("1. 학생 정보 입력")
 
@@ -178,7 +178,7 @@ with row2_col3:
 st.markdown("---")
 
 # =========================================================
-# 2단계: 체험 프로그램 선택 (초기화를 위해 key 추가)
+# 2단계: 체험 프로그램 선택 
 # =========================================================
 st.subheader("2. 체험 프로그램 선택")
 
@@ -218,94 +218,106 @@ selected_display = st.selectbox("프로그램 선택", display_options, index=No
 st.markdown("---")
 
 # =========================================================
-# 3단계: 최종 신청 버튼 
+# 3단계: 최종 신청 버튼 (🔴 버튼 텍스트 변경 로직 추가)
 # =========================================================
-if st.button("🚀 신청하기", use_container_width=True, type="primary"):
-    
-    if not name_input or not name_input.strip():
-        st.error("❌ [학생 정보] '이름' 칸이 비어있습니다. 이름을 입력해주세요.")
-    elif not phone_input or not phone_input.strip():
-        st.error("❌ [학생 정보] '연락처' 칸이 비어있습니다. 연락처를 입력해주세요.")
-    elif not school_input or not school_input.strip():
-        st.error("❌ [학생 정보] '중학교' 칸이 비어있습니다. 학교명을 입력해주세요.")
-    elif not grade_input:
-        st.error("❌ [학생 정보] '학년'을 선택해주세요. (현재 '선택하세요' 상태입니다)")
-    elif not class_input or not class_input.strip():
-        st.error("❌ [학생 정보] '반' 칸이 비어있습니다. 몇 반인지 입력해주세요.")
-    elif not selected_date or not selected_school or not selected_display:
-        st.error("❌ [프로그램 선택] 날짜, 고등학교, 프로그램을 모두 정확하게 골라주세요.")
-    elif not phone_input.isdigit():
-        st.warning("연락처에는 하이픈(-) 없이 숫자만 입력해주세요.")
-    elif len(phone_input) != 11:
-        st.warning("연락처 11자리를 모두 입력해주세요.")
-    elif not phone_input.startswith("010"):
-        st.warning("연락처는 010으로 시작해야 합니다.")
-    elif "[마감]" in selected_display:
-        st.error("❌ 이미 예비 인원까지 모두 마감되었습니다.")
-    else:
-        real_program_name = display_map[selected_display]
-        current_limit = limit_map[real_program_name]
-        formatted_phone = format_phone_number(phone_input.strip())
-        clean_name = name_input.strip()
-        clean_school = school_input.strip()
-        clean_class = class_input.strip()
-        
-        fresh_df = load_data_fresh() 
-        final_count = count_in_dataframe(fresh_df, selected_date, selected_school, real_program_name)
-        
-        if final_count >= (current_limit + RESERVE_LIMIT):
-            st.error(f"😭 아쉽지만 예비 인원까지 모두 마감되었습니다.")
-            load_data_cached.clear() 
-        else:
-            user_history = get_user_history(fresh_df, clean_name, formatted_phone)
-            
-            date_dup = pd.DataFrame()
-            prog_dup = pd.DataFrame()
-            
-            if not user_history.empty:
-                date_dup = user_history[user_history['체험날짜'] == selected_date]
-                prog_dup = user_history[user_history['프로그램'] == real_program_name]
-            
-            if not date_dup.empty:
-                st.error(f"🚫 '{selected_date}'에는 이미 신청 내역이 있어 중복 신청할 수 없습니다.")
-            elif not prog_dup.empty:
-                st.error(f"🚫 '{real_program_name}' 프로그램은 이미 신청하셨습니다.")
-            else:
-                if final_count < current_limit:
-                    status_text = str(final_count + 1) 
-                else:
-                    reserve_no = final_count - current_limit + 1
-                    status_text = f"예비 {reserve_no}" 
+# 만약 방금 신청을 성공했다면, 완료 메시지로 버튼을 바꿔서 보여줍니다.
+if st.session_state.get('show_complete_msg', False):
+    st.button(st.session_state.get('complete_msg_text', "✅ 신청이 완료되었습니다."), disabled=True, use_container_width=True)
+    # 한 번 보여주고 나면 상태를 해제하여, 다음 입력 시 원래의 '신청하기' 버튼으로 돌아가게 만듭니다.
+    st.session_state['show_complete_msg'] = False
 
-                new_entry_list = [
-                    datetime.now(kst).strftime("%Y-%m-%d %H:%M:%S"),
-                    clean_name,
-                    formatted_phone,
-                    clean_school,
-                    grade_input,
-                    clean_class,
-                    selected_date,
-                    selected_school,
-                    real_program_name,
-                    status_text  
-                ]
+else:
+    # 평상시 보이는 '신청하기' 버튼
+    if st.button("🚀 신청하기", use_container_width=True, type="primary"):
+        
+        if not name_input or not name_input.strip():
+            st.error("❌ [학생 정보] '이름' 칸이 비어있습니다. 이름을 입력해주세요.")
+        elif not phone_input or not phone_input.strip():
+            st.error("❌ [학생 정보] '연락처' 칸이 비어있습니다. 연락처를 입력해주세요.")
+        elif not school_input or not school_input.strip():
+            st.error("❌ [학생 정보] '중학교' 칸이 비어있습니다. 학교명을 입력해주세요.")
+        elif not grade_input:
+            st.error("❌ [학생 정보] '학년'을 선택해주세요. (현재 '선택하세요' 상태입니다)")
+        elif not class_input or not class_input.strip():
+            st.error("❌ [학생 정보] '반' 칸이 비어있습니다. 몇 반인지 입력해주세요.")
+        elif not selected_date or not selected_school or not selected_display:
+            st.error("❌ [프로그램 선택] 날짜, 고등학교, 프로그램을 모두 정확하게 골라주세요.")
+        elif not phone_input.isdigit():
+            st.warning("연락처에는 하이픈(-) 없이 숫자만 입력해주세요.")
+        elif len(phone_input) != 11:
+            st.warning("연락처 11자리를 모두 입력해주세요.")
+        elif not phone_input.startswith("010"):
+            st.warning("연락처는 010으로 시작해야 합니다.")
+        elif "[마감]" in selected_display:
+            st.error("❌ 이미 예비 인원까지 모두 마감되었습니다.")
+        else:
+            real_program_name = display_map[selected_display]
+            current_limit = limit_map[real_program_name]
+            formatted_phone = format_phone_number(phone_input.strip())
+            clean_name = name_input.strip()
+            clean_school = school_input.strip()
+            clean_class = class_input.strip()
+            
+            fresh_df = load_data_fresh() 
+            final_count = count_in_dataframe(fresh_df, selected_date, selected_school, real_program_name)
+            
+            if final_count >= (current_limit + RESERVE_LIMIT):
+                st.error(f"😭 아쉽지만 예비 인원까지 모두 마감되었습니다.")
+                load_data_cached.clear() 
+            else:
+                user_history = get_user_history(fresh_df, clean_name, formatted_phone)
                 
-                save_data(new_entry_list)
+                date_dup = pd.DataFrame()
+                prog_dup = pd.DataFrame()
                 
-                # 🔴 성공 메시지 기억 및 입력칸 초기화 로직
-                if final_count < current_limit:
-                    st.session_state['success_msg'] = f"🎉 신청이 완료되었습니다! ({real_program_name})"
+                if not user_history.empty:
+                    date_dup = user_history[user_history['체험날짜'] == selected_date]
+                    prog_dup = user_history[user_history['프로그램'] == real_program_name]
+                
+                if not date_dup.empty:
+                    st.error(f"🚫 '{selected_date}'에는 이미 신청 내역이 있어 중복 신청할 수 없습니다.")
+                elif not prog_dup.empty:
+                    st.error(f"🚫 '{real_program_name}' 프로그램은 이미 신청하셨습니다.")
                 else:
-                    reserve_no = final_count - current_limit + 1
-                    st.session_state['warning_msg'] = f"예비 {reserve_no}번으로 접수되었습니다. ({real_program_name})"
-                
-                # 입력된 모든 값을 지워줍니다.
-                for key in ["k_name", "k_phone", "k_school", "k_grade", "k_class", "k_date", "k_highschool", "k_program"]:
-                    if key in st.session_state:
-                        del st.session_state[key]
-                        
-                # 화면 즉시 새로고침
-                st.rerun()
+                    if final_count < current_limit:
+                        status_text = str(final_count + 1) 
+                    else:
+                        reserve_no = final_count - current_limit + 1
+                        status_text = f"예비 {reserve_no}" 
+
+                    new_entry_list = [
+                        datetime.now(kst).strftime("%Y-%m-%d %H:%M:%S"),
+                        clean_name,
+                        formatted_phone,
+                        clean_school,
+                        grade_input,
+                        clean_class,
+                        selected_date,
+                        selected_school,
+                        real_program_name,
+                        status_text  
+                    ]
+                    
+                    save_data(new_entry_list)
+                    
+                    # 🔴 성공 시 표시할 메시지를 저장하고 화면을 초기화합니다.
+                    if final_count < current_limit:
+                        st.session_state['success_msg'] = f"🎉 신청이 완료되었습니다! ({real_program_name})"
+                        st.session_state['complete_msg_text'] = "✅ 신청이 완료되었습니다."
+                    else:
+                        reserve_no = final_count - current_limit + 1
+                        st.session_state['warning_msg'] = f"예비 {reserve_no}번으로 접수되었습니다. ({real_program_name})"
+                        st.session_state['complete_msg_text'] = f"⚠️ 예비 {reserve_no}번으로 접수되었습니다."
+                    
+                    # 버튼을 변경하라는 신호를 켭니다.
+                    st.session_state['show_complete_msg'] = True
+                    
+                    # 입력된 모든 값을 지워줍니다.
+                    for key in ["k_name", "k_phone", "k_school", "k_grade", "k_class", "k_date", "k_highschool", "k_program"]:
+                        if key in st.session_state:
+                            del st.session_state[key]
+                            
+                    st.rerun()
 
 with st.expander("관리자 메뉴"):
     st.write("데이터는 구글 스프레드시트에 실시간으로 저장되고 있습니다.")
